@@ -149,39 +149,3 @@ setioctls()
 # endif
 #endif
 }
-
-#ifdef SUSPEND		/* No longer implies BSD */
-int
-dosuspend()
-{
-# ifdef SIGTSTP
-	if(signal(SIGTSTP, SIG_IGN) == SIG_DFL) {
-		suspend_nhwindows((char *)0);
-#  ifdef _M_UNIX
-		sco_mapon();
-#  endif
-#  ifdef __linux__
-		linux_mapon();
-#  endif
-		(void) signal(SIGTSTP, SIG_DFL);
-#  ifdef AUX
-		( void ) kill ( 0 , SIGSTOP ) ;
-#  else
-		(void) kill(0, SIGTSTP);
-#  endif
-#  ifdef _M_UNIX
-		sco_mapoff();
-#  endif
-#  ifdef __linux__
-		linux_mapoff();
-#  endif
-		resume_nhwindows();
-	} else {
-		pline("I don't think your shell has job control.");
-	}
-# else
-	pline("Sorry, it seems we have no SIGTSTP here.  Try ! or S.");
-# endif
-	return(0);
-}
-#endif /* SUSPEND */

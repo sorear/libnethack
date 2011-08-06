@@ -14,16 +14,6 @@
 #include <fcntl.h>
 #endif
 
-#if !defined(_BULL_SOURCE) && !defined(__sgi) && !defined(_M_UNIX)
-# if !defined(SUNOS4) && !(defined(ULTRIX) && defined(__GNUC__))
-#  if defined(POSIX_TYPES) || defined(SVR4) || defined(HPUX)
-extern struct passwd *FDECL(getpwuid,(uid_t));
-#  else
-extern struct passwd *FDECL(getpwuid,(int));
-#  endif
-# endif
-#endif
-extern struct passwd *FDECL(getpwnam,(const char *));
 #ifdef CHDIR
 static void FDECL(chdirx, (const char *,BOOLEAN_P));
 #endif /* CHDIR */
@@ -172,7 +162,7 @@ char *argv[];
          */
         (void) signal(SIGQUIT,SIG_IGN);
         (void) signal(SIGINT,SIG_IGN);
-        Sprintf(lock, "%d%s", (int)getuid(), plname);
+        Sprintf(lock, "TEMP");
 
 	regularize(lock);
 	set_levelfile_name(lock, 0);
@@ -279,36 +269,8 @@ char *argv[];
 		argc--;
 		switch(argv[0][1]){
 		case 'D':
-#ifdef WIZARD
-			{
-			  char *user;
-			  int uid;
-			  struct passwd *pw = (struct passwd *)0;
-
-			  uid = getuid();
-			  user = getlogin();
-			  if (user) {
-			      pw = getpwnam(user);
-			      if (pw && (pw->pw_uid != uid)) pw = 0;
-			  }
-			  if (pw == 0) {
-			      user = nh_getenv("USER");
-			      if (user) {
-				  pw = getpwnam(user);
-				  if (pw && (pw->pw_uid != uid)) pw = 0;
-			      }
-			      if (pw == 0) {
-				  pw = getpwuid(uid);
-			      }
-			  }
-			  if (pw && !strcmp(pw->pw_name,WIZARD)) {
-			      wizard = TRUE;
-			      break;
-			  }
-			}
-			/* otherwise fall thru to discover */
-			wiz_error_flag = TRUE;
-#endif
+			wizard = TRUE;
+			break;
 		case 'X':
 			discover = TRUE;
 			break;
@@ -383,10 +345,6 @@ boolean wr;
 	       && strcmp(dir, HACKDIR)		/* and not the default? */
 # endif
 		) {
-# ifdef SECURE
-	    (void) setgid(getgid());
-	    (void) setuid(getuid());		/* Ron Wessels */
-# endif
 	} else {
 	    /* non-default data files is a sign that scores may not be
 	     * compatible, or perhaps that a binary not fitting this
@@ -446,12 +404,7 @@ whoami() {
 	register char *s;
 
 	if (*plname) return FALSE;
-	if(/* !*plname && */ (s = nh_getenv("USER")))
-		(void) strncpy(plname, s, sizeof(plname)-1);
-	if(!*plname && (s = nh_getenv("LOGNAME")))
-		(void) strncpy(plname, s, sizeof(plname)-1);
-	if(!*plname && (s = getlogin()))
-		(void) strncpy(plname, s, sizeof(plname)-1);
+        (void) strncpy(plname, "User", sizeof(plname)-1);
 	return TRUE;
 }
 

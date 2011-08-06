@@ -111,8 +111,6 @@ char *argv[];
 		&& strcmp(dir, HACKDIR)
 # endif
 		) {
-		(void) setgid(getgid());
-		(void) setuid(getuid());
 	}
 #endif	/* SECURE && !VMS */
 

@@ -278,7 +278,7 @@ register int fd, mode;
 #ifdef MFLOPPY
 	count_only = (mode & COUNT_SAVE);
 #endif
-	uid = getuid();
+	uid = 0;
 	bwrite(fd, (genericptr_t) &uid, sizeof uid);
 	bwrite(fd, (genericptr_t) &flags, sizeof(struct flag));
 	bwrite(fd, (genericptr_t) &u, sizeof(struct you));

@@ -33,7 +33,7 @@ static long final_fpos;
 #define NAMSZ	10
 #define DTHSZ	100
 #define ROLESZ   3
-#define PERSMAX	 3		/* entries per name/uid per char. allowed */
+#define PERSMAX	 100		/* entries per name/uid per char. allowed */
 #define POINTSMIN	1	/* must be > 0 */
 #define ENTRYMAX	100	/* must be >= 10 */
 
@@ -244,7 +244,7 @@ void
 topten(how)
 int how;
 {
-	int uid = getuid();
+	int uid = 0;
 	int rank, rank0 = -1, rank1 = 0;
 	int occ_cnt = PERSMAX;
 	register struct toptenentry *t0, *tprev;
@@ -789,7 +789,7 @@ char **argv;
 
 	if (argc <= 1) {
 #ifdef PERS_IS_UID
-		uid = getuid();
+		uid = 0;
 		playerct = 0;
 		players = (const char **)0;
 #else

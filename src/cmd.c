@@ -1375,9 +1375,6 @@ static const struct func_tab cmdlist[] = {
 	{C('w'), TRUE, wiz_wish},
 #endif
 	{C('x'), TRUE, doattributes},
-#ifdef SUSPEND
-	{C('z'), TRUE, dosuspend},
-#endif
 	{'a', FALSE, doapply},
 	{'A', FALSE, doddoremarm},
 	{M('a'), TRUE, doorganize},

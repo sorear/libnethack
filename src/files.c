@@ -768,44 +768,8 @@ compress_bonesfile()
 void
 set_savefile_name()
 {
-#if defined(WIN32)
-	char fnamebuf[BUFSZ], encodedfnamebuf[BUFSZ];
-#endif
-#ifdef VMS
-	Sprintf(SAVEF, "[.save]%d%s", getuid(), plname);
-	regularize(SAVEF+7);
-	Strcat(SAVEF, ";1");
-#else
-# if defined(MICRO)
-	Strcpy(SAVEF, SAVEP);
-#  ifdef AMIGA
-	strncat(SAVEF, bbs_id, PATHLEN);
-#  endif
-	{
-		int i = strlen(SAVEP);
-#  ifdef AMIGA
-		/* plname has to share space with SAVEP and ".sav" */
-		(void)strncat(SAVEF, plname, FILENAME - i - 4);
-#  else
-		(void)strncat(SAVEF, plname, 8);
-#  endif
-		regularize(SAVEF+i);
-	}
-	Strcat(SAVEF, ".sav");
-# else
-#  if defined(WIN32)
-	/* Obtain the name of the logged on user and incorporate
-	 * it into the name. */
-	Sprintf(fnamebuf, "%s-%s", get_username(0), plname);
-	(void)fname_encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.",
-				'%', fnamebuf, encodedfnamebuf, BUFSZ);
-	Sprintf(SAVEF, "%s.NetHack-saved-game", encodedfnamebuf);
-#  else
-	Sprintf(SAVEF, "save/%d%s", (int)getuid(), plname);
-	regularize(SAVEF+5);	/* avoid . or / in name */
-#  endif /* WIN32 */
-# endif	/* MICRO */
-#endif /* VMS   */
+    strcpy(SAVEF, "SAVE");
+    regularize(SAVEF+5);	/* avoid . or / in name */
 }
 
 #ifdef INSURANCE
@@ -823,19 +787,7 @@ int fd;
 void
 set_error_savefile()
 {
-# ifdef VMS
-      {
-	char *semi_colon = rindex(SAVEF, ';');
-	if (semi_colon) *semi_colon = '\0';
-      }
-	Strcat(SAVEF, ".e;1");
-# else
-#  ifdef MAC
-	Strcat(SAVEF, "-e");
-#  else
 	Strcat(SAVEF, ".e");
-#  endif
-# endif
 }
 #endif
 
@@ -848,26 +800,7 @@ create_savefile()
 	int fd;
 
 	fq_save = fqname(SAVEF, SAVEPREFIX, 0);
-#if defined(MICRO) || defined(WIN32)
-	fd = open(fq_save, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, FCMASK);
-#else
-# ifdef MAC
-	fd = maccreat(fq_save, SAVE_TYPE);
-# else
 	fd = creat(fq_save, FCMASK);
-# endif
-# if defined(VMS) && !defined(SECURE)
-	/*
-	   Make sure the save file is owned by the current process.  That's
-	   the default for non-privileged users, but for priv'd users the
-	   file will be owned by the directory's owner instead of the user.
-	 */
-#  ifdef getuid	/*(see vmsunix.c)*/
-#   undef getuid
-#  endif
-	(void) chown(fq_save, getuid(), getgid());
-# endif /* VMS && !SECURE */
-#endif	/* MICRO */
 
 	return fd;
 }
@@ -881,11 +814,7 @@ open_savefile()
 	int fd;
 
 	fq_save = fqname(SAVEF, SAVEPREFIX, 0);
-#ifdef MAC
-	fd = macopen(fq_save, O_RDONLY | O_BINARY, SAVE_TYPE);
-#else
 	fd = open(fq_save, O_RDONLY | O_BINARY, 0);
-#endif
 	return fd;
 }
 
@@ -973,34 +902,7 @@ const char* filename;
 char**
 get_saved_games()
 {
-#if defined(UNIX) && defined(QT_GRAPHICS)
-    int myuid=getuid();
-    struct dirent **namelist;
-    int n = scandir("save", &namelist, 0, alphasort);;
-    if ( n > 0 ) {
-	int i,j=0;
-	char** result = (char**)alloc((n+1)*sizeof(char*)); /* at most */
-	for (i=0; i<n; i++) {
-	    int uid;
-	    char name[64]; /* more than PL_NSIZ */
-	    if ( sscanf( namelist[i]->d_name, "%d%63s", &uid, name ) == 2 ) {
-		if ( uid == myuid ) {
-		    char filename[BUFSZ];
-		    char* r;
-		    Sprintf(filename,"save/%d%s",uid,name);
-		    r = plname_from_file(filename);
-		    if ( r )
-			result[j++] = r;
-		}
-	    }
-	}
-	result[j++] = 0;
-	return result;
-    } else
-#endif
-    {
 	return 0;
-    }
 }
 
 void
