@@ -185,7 +185,7 @@
  *	a tar-like file, thus making a neater installation.  See *conf.h
  *	for detailed configuration.
  */
-/* #define DLB */	/* not supported on all platforms */
+#define DLB	/* not supported on all platforms */
 
 /*
  *	Defining INSURANCE slows down level changes, but allows games that
@@ -193,37 +193,6 @@
  *	of the last level change, after running a utility program.
  */
 #define INSURANCE	/* allow crashed game recovery */
-
-#ifndef MAC
-# define CHDIR		/* delete if no chdir() available */
-#endif
-
-#ifdef CHDIR
-/*
- * If you define HACKDIR, then this will be the default playground;
- * otherwise it will be the current directory.
- */
-# ifndef HACKDIR
-#  define HACKDIR "/usr/games/lib/nethackdir"
-# endif
-
-/*
- * Some system administrators are stupid enough to make Hack suid root
- * or suid daemon, where daemon has other powers besides that of reading or
- * writing Hack files.	In such cases one should be careful with chdir's
- * since the user might create files in a directory of his choice.
- * Of course SECURE is meaningful only if HACKDIR is defined.
- */
-/* #define SECURE */	/* do setuid(getuid()) after chdir() */
-
-/*
- * If it is desirable to limit the number of people that can play Hack
- * simultaneously, define HACKDIR, SECURE and MAX_NR_OF_PLAYERS.
- * #define MAX_NR_OF_PLAYERS 6
- */
-#endif /* CHDIR */
-
-
 
 /*
  * Section 3:	Definitions that may vary with system type.
