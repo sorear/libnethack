@@ -57,7 +57,6 @@ getlin_hook_proc hook;
 	pline("%s ", query);
 	*obufp = 0;
 	for(;;) {
-		(void) fflush(stdout);
 		Sprintf(toplines, "%s ", query);
 		Strcat(toplines, obufp);
 		if((c = Getchar()) == EOF) {

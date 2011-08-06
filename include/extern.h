@@ -2020,6 +2020,9 @@ E void VDECL(error, (const char *,...)) PRINTF_F(1,2);
 
 /* ### unixunix.c ### */
 
+E void FDECL(nh_exit, (int));
+E int NDECL(nh_stdin_get);
+E void FDECL(nh_output, (const char *, int));
 #ifdef UNIX
 E void FDECL(regularize, (char *));
 # if defined(TIMED_DELAY) && !defined(msleep) && defined(SYSV)

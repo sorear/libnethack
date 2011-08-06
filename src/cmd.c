@@ -2423,7 +2423,6 @@ readchar()
 	   * and we must see several before we quit.
 	   */
 	    do {
-		clearerr(stdin);	/* omit if clearerr is undefined */
 		sym = Getchar();
 	    } while (--cnt && sym == EOF);
 	}

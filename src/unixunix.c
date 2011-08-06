@@ -66,3 +66,28 @@ unsigned msec;				/* milliseconds */
 	(void) poll(&unused, (unsigned long)0, msecs);
 }
 #endif /* TIMED_DELAY for SYSV */
+
+int
+nh_stdin_get()
+{
+    char buf;
+    if (read(0, &buf, 1) > 0)
+        return (unsigned char)buf;
+    else
+        return EOF;
+}
+
+void
+nh_output(s, l)
+    const char *s;
+    int l;
+{
+    write(1, s, l);
+}
+
+void
+nh_exit(x)
+    int x;
+{
+    exit(x);
+}

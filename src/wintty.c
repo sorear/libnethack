@@ -25,11 +25,7 @@ extern void msmsg(const char *,...);
 # endif
 #endif
 
-
-#ifndef NO_TERMS
 #include "tcap.h"
-#endif
-
 #include "wintty.h"
 
 #ifdef CLIPPING		/* might want SIGWINCH */
@@ -245,7 +241,6 @@ winch()
 			    addtopl("Press Return to continue: ");
 			    break;
 			}
-		(void) fflush(stdout);
 		if(i < 2) flush_screen(1);
 	    }
 	}
@@ -269,9 +264,6 @@ char** argv;
      *  tty_startup() must be called before initoptions()
      *    due to ordering of graphics settings
      */
-#if defined(UNIX) || defined(VMS)
-    setbuf(stdout,obuf);
-#endif
     gettty();
 
     /* to port dependant tty setup */
@@ -679,29 +671,11 @@ tty_askname()
 	while((c = tty_nhgetch()) != '\n') {
 		if(c == EOF) error("End of input\n");
 		if (c == '\033') { ct = 0; break; }  /* continue outer loop */
-#if defined(WIN32CON)
-		if (c == '\003') bail("^C abort.\n");
-#endif
 		/* some people get confused when their erase char is not ^H */
 		if (c == '\b' || c == '\177') {
 			if(ct) {
 				ct--;
-#ifdef WIN32CON
-				ttyDisplay->curx--;
-#endif
-#if defined(MICRO) || defined(WIN32CON)
-# if defined(WIN32CON) || defined(MSDOS)
-				backsp();       /* \b is visible on NT */
-				(void) putchar(' ');
-				backsp();
-# else
-				msmsg("\b \b");
-# endif
-#else
-				(void) putchar('\b');
-				(void) putchar(' ');
-				(void) putchar('\b');
-#endif
+                                xputs("\b \b");
 			}
 			continue;
 		}
@@ -710,20 +684,8 @@ tty_askname()
 		if(c < 'A' || (c > 'Z' && c < 'a') || c > 'z') c = '_';
 #endif
 		if (ct < (int)(sizeof plname) - 1) {
-#if defined(MICRO)
-# if defined(MSDOS)
-			if (iflags.grmode) {
-				(void) putchar(c);
-			} else
-# endif
-			msmsg("%c", c);
-#else
-			(void) putchar(c);
-#endif
+			xputc(c);
 			plname[ct++] = c;
-#ifdef WIN32CON
-			ttyDisplay->curx++;
-#endif
 		}
 	}
 	plname[ct] = 0;
@@ -1038,7 +1000,7 @@ set_item_state(window, lineno, item)
     char ch = item->selected ? (item->count == -1L ? '+' : '#') : '-';
     tty_curs(window, 4, lineno);
     term_start_attr(item->attr);
-    (void) putchar(ch);
+    xputc(ch);
     ttyDisplay->curx++;
     term_end_attr(item->attr);
 }
@@ -1210,7 +1172,7 @@ struct WinDesc *cw;
 		    tty_curs(window, 1, page_lines);
 		    if (cw->offx) cl_end();
 
-		    (void) putchar(' ');
+		    xputc(' ');
 		    ++ttyDisplay->curx;
 		    /*
 		     * Don't use xputs() because (1) under unix it calls
@@ -1231,11 +1193,11 @@ struct WinDesc *cw;
 			if (n == 2 && curr->identifier.a_void != 0 &&
 							curr->selected) {
 			    if (curr->count == -1L)
-				(void) putchar('+'); /* all selected */
+				xputc('+'); /* all selected */
 			    else
-				(void) putchar('#'); /* count selected */
+                                xputc('#'); /* count selected */
 			} else
-			    (void) putchar(*cp);
+			    xputc(*cp);
 		    term_end_attr(curr->attr);
 		}
 	    } else {
@@ -1459,7 +1421,7 @@ struct WinDesc *cw;
 	if (cw->data[i]) {
 	    attr = cw->data[i][0] - 1;
 	    if (cw->offx) {
-		(void) putchar(' '); ++ttyDisplay->curx;
+		xputc(' '); ++ttyDisplay->curx;
 	    }
 	    term_start_attr(attr);
 	    for (cp = &cw->data[i][1];
@@ -1470,7 +1432,7 @@ struct WinDesc *cw;
 		    *cp && (int) ttyDisplay->curx < (int) ttyDisplay->cols;
 		    cp++, ttyDisplay->curx++)
 #endif
-		(void) putchar(*cp);
+		xputc(*cp);
 	    term_end_attr(attr);
 	}
     }
@@ -1519,7 +1481,6 @@ tty_display_nhwindow(window, blocking)
 	    return;
 	}
     case NHW_BASE:
-	(void) fflush(stdout);
 	break;
     case NHW_TEXT:
 	cw->maxcol = ttyDisplay->cols; /* force full-screen mode */
@@ -1680,7 +1641,7 @@ register int x, y;	/* not xchar: perhaps xchar is unsigned and
 	nocmov(x, y);
 #ifndef NO_TERMS
     } else if ((x <= 3 && cy <= 3) || (!nh_CM && x < cx)) {
-	(void) putchar('\r');
+	(void) xputc('\r');
 	ttyDisplay->curx = 0;
 	nocmov(x, y);
     } else if (!nh_CM) {
@@ -1709,7 +1670,7 @@ tty_putsym(window, x, y, ch)
     case NHW_MAP:
     case NHW_BASE:
 	tty_curs(window, x, y);
-	(void) putchar(ch);
+	(void) xputc(ch);
 	ttyDisplay->curx++;
 	cw->curx++;
 	break;
@@ -1814,7 +1775,7 @@ tty_putstr(window, attr, str)
 	tty_curs(window, cw->curx+1, cw->cury);
 	term_start_attr(attr);
 	while(*str && (int) ttyDisplay->curx < (int) ttyDisplay->cols-1) {
-	    (void) putchar(*str);
+	    (void) xputc(*str);
 	    str++;
 	    ttyDisplay->curx++;
 	}
@@ -1831,7 +1792,7 @@ tty_putstr(window, attr, str)
 		cw->cury++;
 		tty_curs(window, cw->curx+1, cw->cury);
 	    }
-	    (void) putchar(*str);
+	    (void) xputc(*str);
 	    str++;
 	    ttyDisplay->curx++;
 	}
@@ -1897,33 +1858,6 @@ tty_display_file(fname, complain)
 const char *fname;
 boolean complain;
 {
-#ifdef DEF_PAGER			/* this implies that UNIX is defined */
-    {
-	/* use external pager; this may give security problems */
-	register int fd = open(fname, 0);
-
-	if(fd < 0) {
-	    if(complain) pline("Cannot open %s.", fname);
-	    else docrt();
-	    return;
-	}
-	if(child(1)) {
-	    /* Now that child() does a setuid(getuid()) and a chdir(),
-	       we may not be able to open file fname anymore, so make
-	       it stdin. */
-	    (void) close(0);
-	    if(dup(fd)) {
-		if(complain) raw_printf("Cannot open %s as stdin.", fname);
-	    } else {
-		(void) execlp(catmore, "page", (char *)0);
-		if(complain) raw_printf("Cannot exec %s.", catmore);
-	    }
-	    if(complain) sleep(10); /* want to wait_synch() but stdin is gone */
-	    terminate(EXIT_FAILURE);
-	}
-	(void) close(fd);
-    }
-#else	/* DEF_PAGER */
     {
 	dlb *f;
 	char buf[BUFSZ];
@@ -1967,7 +1901,6 @@ boolean complain;
 	    (void) dlb_fclose(f);
 	}
     }
-#endif /* DEF_PAGER */
 }
 
 void
@@ -2235,7 +2168,6 @@ tty_update_inventory()
 void
 tty_mark_synch()
 {
-    (void) fflush(stdout);
 }
 
 void
@@ -2249,7 +2181,6 @@ tty_wait_synch()
 	tty_display_nhwindow(WIN_MAP, FALSE);
 	if(ttyDisplay->inmore) {
 	    addtopl("--More--");
-	    (void) fflush(stdout);
 	} else if(ttyDisplay->inread > program_state.gameover) {
 	    /* this can only happen if we were reading and got interrupted */
 	    ttyDisplay->toplin = 3;
@@ -2257,7 +2188,6 @@ tty_wait_synch()
 	    (void) tty_doprev_message();
 	    (void) tty_doprev_message();
 	    ttyDisplay->intr++;
-	    (void) fflush(stdout);
 	}
     }
 }
@@ -2330,23 +2260,23 @@ int in_ch;
 # if defined(ASCIIGRAPH) && !defined(NO_TERMS)
     if (iflags.IBMgraphics || iflags.eight_bit_tty) {
 	/* IBM-compatible displays don't need other stuff */
-	(void) putchar(ch);
+	(void) xputc(ch);
     } else if (ch & 0x80) {
 	if (!GFlag || HE_resets_AS) {
 	    graph_on();
 	    GFlag = TRUE;
 	}
-	(void) putchar((ch ^ 0x80)); /* Strip 8th bit */
+	(void) xputc((ch ^ 0x80)); /* Strip 8th bit */
     } else {
 	if (GFlag) {
 	    graph_off();
 	    GFlag = FALSE;
 	}
-	(void) putchar(ch);
+	(void) xputc(ch);
     }
 
 #else
-    (void) putchar(ch);
+    (void) xputc(ch);
 
 #endif	/* ASCIIGRAPH && !NO_TERMS */
 
@@ -2430,7 +2360,7 @@ tty_print_glyph(window, x, y, glyph)
 
 #ifndef NO_TERMS
     if (ul_hack && ch == '_') {		/* non-destructive underscore */
-	(void) putchar((char) ' ');
+	(void) xputc((char) ' ');
 	backsp();
     }
 #endif
@@ -2479,11 +2409,9 @@ tty_raw_print(str)
     const char *str;
 {
     if(ttyDisplay) ttyDisplay->rawprint++;
-#if defined(MICRO) || defined(WIN32CON)
-    msmsg("%s\n", str);
-#else
-    puts(str); (void) fflush(stdout);
-#endif
+    nh_output(str, strlen(str));
+    char nl = '\n';
+    nh_output(&nl, 1);
 }
 
 void
@@ -2492,35 +2420,17 @@ tty_raw_print_bold(str)
 {
     if(ttyDisplay) ttyDisplay->rawprint++;
     term_start_raw_bold();
-#if defined(MICRO) || defined(WIN32CON)
-    msmsg("%s", str);
-#else
-    (void) fputs(str, stdout);
-#endif
+    nh_output(str, strlen(str));
     term_end_raw_bold();
-#if defined(MICRO) || defined(WIN32CON)
-    msmsg("\n");
-#else
-    puts("");
-    (void) fflush(stdout);
-#endif
+    char nl = '\n';
+    nh_output(&nl, 1);
 }
 
 int
 tty_nhgetch()
 {
     int i;
-#ifdef UNIX
-    /* kludge alert: Some Unix variants return funny values if getc()
-     * is called, interrupted, and then called again.  There
-     * is non-reentrant code in the internal _filbuf() routine, called by
-     * getc().
-     */
-    static volatile int nesting = 0;
-    char nestbuf;
-#endif
 
-    (void) fflush(stdout);
     /* Note: if raw_print() and wait_synch() get called to report terminal
      * initialization problems, then wins[] and ttyDisplay might not be
      * available yet.  Such problems will probably be fatal before we get
@@ -2528,14 +2438,7 @@ tty_nhgetch()
      */
     if (WIN_MESSAGE != WIN_ERR && wins[WIN_MESSAGE])
 	    wins[WIN_MESSAGE]->flags &= ~WIN_STOP;
-#ifdef UNIX
-    i = ((++nesting == 1) ? tgetch() :
-	 (read(fileno(stdin), (genericptr_t)&nestbuf,1) == 1 ? (int)nestbuf :
-								EOF));
-    --nesting;
-#else
-    i = tgetch();
-#endif
+    i = nh_stdin_get();
     if (!i) i = '\033'; /* map NUL to ESC since nethack doesn't expect NUL */
     if (ttyDisplay && ttyDisplay->toplin == 1)
 	ttyDisplay->toplin = 2;
@@ -2552,25 +2455,7 @@ int
 tty_nh_poskey(x, y, mod)
     int *x, *y, *mod;
 {
-# if defined(WIN32CON)
-    int i;
-    (void) fflush(stdout);
-    /* Note: if raw_print() and wait_synch() get called to report terminal
-     * initialization problems, then wins[] and ttyDisplay might not be
-     * available yet.  Such problems will probably be fatal before we get
-     * here, but validate those pointers just in case...
-     */
-    if (WIN_MESSAGE != WIN_ERR && wins[WIN_MESSAGE])
-	    wins[WIN_MESSAGE]->flags &= ~WIN_STOP;
-    i = ntposkey(x, y, mod);
-    if (!i && mod && *mod == 0)
-    	i = '\033'; /* map NUL to ESC since nethack doesn't expect NUL */
-    if (ttyDisplay && ttyDisplay->toplin == 1)
-		ttyDisplay->toplin = 2;
-    return i;
-# else
     return tty_nhgetch();
-# endif
 }
 
 void

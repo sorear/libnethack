@@ -93,18 +93,6 @@ char SAVEF[SAVESIZE];	/* holds relative path of save file from playground */
 char SAVEP[SAVESIZE];	/* holds path of directory for save file */
 #endif
 
-#ifdef HOLD_LOCKFILE_OPEN
-struct level_ftrack {
-int init;
-int fd;					/* file descriptor for level file     */
-int oflag;				/* open flags                         */
-boolean nethack_thinks_it_is_open;	/* Does NetHack think it's open?       */
-} lftrack;
-# if defined(WIN32)
-#include <share.h>
-# endif
-#endif /*HOLD_LOCKFILE_OPEN*/
-
 #ifdef WIZARD
 #define WIZKIT_MAX 128
 static char wizkit[WIZKIT_MAX];
@@ -1536,79 +1524,19 @@ void
 check_recordfile(dir)
 const char *dir;
 {
-#if (defined(macintosh) && (defined(__SC__) || defined(__MRC__))) || defined(__MWERKS__)
-# pragma unused(dir)
-#endif
 	const char *fq_record;
-	int fd;
+	FILE* fd;
 
-#if defined(UNIX) || defined(VMS)
 	fq_record = fqname(RECORD, SCOREPREFIX, 0);
-	fd = open(fq_record, O_RDWR, 0);
-	if (fd >= 0) {
-# ifdef VMS	/* must be stream-lf to use UPDATE_RECORD_IN_PLACE */
-		if (!file_is_stmlf(fd)) {
-		    raw_printf(
-		  "Warning: scoreboard file %s is not in stream_lf format",
-				fq_record);
-		    wait_synch();
-		}
-# endif
-	    (void) close(fd);	/* RECORD is accessible */
-	} else if ((fd = open(fq_record, O_CREAT|O_RDWR, FCMASK)) >= 0) {
-	    (void) close(fd);	/* RECORD newly created */
-# if defined(VMS) && !defined(SECURE)
-	    /* Re-protect RECORD with world:read+write+execute+delete access. */
-	    (void) chmod(fq_record, FCMASK | 007);
-# endif /* VMS && !SECURE */
+	fd = fopen(fq_record, "r+");
+	if (fd != 0) {
+	    (void) fclose(fd);	/* RECORD is accessible */
+	} else if ((fd = fopen(fq_record, "w+")) >= 0) {
+	    (void) fclose(fd);	/* RECORD newly created */
 	} else {
 	    raw_printf("Warning: cannot write scoreboard file %s", fq_record);
 	    wait_synch();
 	}
-#endif  /* !UNIX && !VMS */
-#if defined(MICRO) || defined(WIN32)
-	char tmp[PATHLEN];
-
-# ifdef OS2_CODEVIEW   /* explicit path on opening for OS/2 */
-	/* how does this work when there isn't an explicit path or fopenp
-	 * for later access to the file via fopen_datafile? ? */
-	(void) strncpy(tmp, dir, PATHLEN - 1);
-	tmp[PATHLEN-1] = '\0';
-	if ((strlen(tmp) + 1 + strlen(RECORD)) < (PATHLEN - 1)) {
-		append_slash(tmp);
-		Strcat(tmp, RECORD);
-	}
-	fq_record = tmp;
-# else
-	Strcpy(tmp, RECORD);
-	fq_record = fqname(RECORD, SCOREPREFIX, 0);
-# endif
-
-	if ((fd = open(fq_record, O_RDWR)) < 0) {
-	    /* try to create empty record */
-# if defined(AZTEC_C) || defined(_DCC) || (defined(__GNUC__) && defined(__AMIGA__))
-	    /* Aztec doesn't use the third argument */
-	    /* DICE doesn't like it */
-	    if ((fd = open(fq_record, O_CREAT|O_RDWR)) < 0) {
-# else
-	    if ((fd = open(fq_record, O_CREAT|O_RDWR, S_IREAD|S_IWRITE)) < 0) {
-# endif
-	raw_printf("Warning: cannot write record %s", tmp);
-		wait_synch();
-	    } else
-		(void) close(fd);
-	} else		/* open succeeded */
-	    (void) close(fd);
-#else /* MICRO || WIN32*/
-
-# ifdef MAC
-	/* Create the "record" file, if necessary */
-	fq_record = fqname(RECORD, SCOREPREFIX, 0);
-	fd = macopen (fq_record, O_RDWR | O_CREAT, TEXT_TYPE);
-	if (fd != -1) macclose (fd);
-# endif /* MAC */
-
-#endif /* MICRO || WIN32*/
 }
 
 /* ----------  END SCOREBOARD CREATION ----------- */

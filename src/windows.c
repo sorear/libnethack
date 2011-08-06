@@ -89,7 +89,8 @@ void
 def_raw_print(s)
 const char *s;
 {
-    puts(s);
+    nh_output(s, strlen(s));
+    nh_output("\r\n", 2);
 }
 
 void

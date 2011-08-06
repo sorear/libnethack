@@ -336,20 +336,16 @@ register int x, y;
 /* See note at OVLx ifdef above.   xputc() is a special function. */
 void
 xputc(c)
-#if defined(apollo)
-int c;
-#else
 char c;
-#endif
 {
-	(void) putchar(c);
+	nh_output(&c, 1);
 }
 
 void
 xputs(s)
 const char *s;
 {
-	(void) fputs(s, stdout);
+        nh_output(s, strlen(s));
 }
 
 void
@@ -459,8 +455,7 @@ void
 tty_nhbell()
 {
 	if (flags.silent) return;
-	(void) putchar('\007');		/* curx does not change */
-	(void) fflush(stdout);
+	(void) xputc('\007');		/* curx does not change */
 }
 
 #endif /* OVLB */
@@ -501,7 +496,6 @@ tty_delay_output()
 	register int i;
 #ifdef TIMED_DELAY
 	if (flags.nap) {
-		(void) fflush(stdout);
 		msleep(50);		/* sleep for 50 milliseconds */
 		return;
 	}
