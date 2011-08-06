@@ -23,8 +23,6 @@ typedef boolean FDECL((*getlin_hook_proc), (char *));
 STATIC_DCL void FDECL(hooked_tty_getlin, (const char*,char*,getlin_hook_proc));
 extern int NDECL(extcmd_via_menu);	/* cmd.c */
 
-extern char erase_char, kill_char;	/* from appropriate tty.c file */
-
 #ifdef OVL1
 
 /*
@@ -105,7 +103,7 @@ getlin_hook_proc hook;
 		    *bufp = 0;
 		    addtopl(obufp);
 		}
-		if(c == erase_char || c == '\b') {
+		if(c == '\b' || c == '\177') {
 			if(bufp != obufp) {
 #ifdef NEWAUTOCOMP
 				char *i;
@@ -157,18 +155,6 @@ getlin_hook_proc hook;
 			    for (; s > bufp; --s) putsyms("\b");
 #endif /* NEWAUTOCOMP */
 			}
-		} else if(c == kill_char || c == '\177') { /* Robert Viduya */
-				/* this test last - @ might be the kill_char */
-#ifndef NEWAUTOCOMP
-			while(bufp != obufp) {
-				bufp--;
-				putsyms("\b \b");
-			}
-#else /* NEWAUTOCOMP */
-			for (; *bufp; ++bufp) putsyms(" ");
-			for (; bufp != obufp; --bufp) putsyms("\b \b");
-			*bufp = 0;
-#endif /* NEWAUTOCOMP */
 		} else
 			tty_nhbell();
 	}

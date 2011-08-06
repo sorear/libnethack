@@ -315,8 +315,6 @@ register int n;
     while (n-- > 0) putsyms("\b \b");
 }
 
-extern char erase_char;		/* from xxxtty.c; don't need kill_char */
-
 char
 tty_yn_function(query,resp, def)
 const char *query,*resp;
@@ -428,7 +426,7 @@ char def;
 		    } else if (z == 'y' || index(quitchars, z)) {
 			if (z == '\033')  value = -1;	/* abort */
 			z = '\n';	/* break */
-		    } else if (z == erase_char || z == '\b') {
+		    } else if (z == '\177' || z == '\b') {
 			if (n_len <= 1) { value = -1;  break; }
 			else { value /= 10;  removetopl(1),  n_len--; }
 		    } else {
