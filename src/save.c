@@ -22,15 +22,12 @@ static int count_only;
 int dotcnt, dotrow;	/* also used in restore */
 #endif
 
-#ifdef ZEROCOMP
-STATIC_DCL void FDECL(bputc, (int));
-#endif
-STATIC_DCL void FDECL(savelevchn, (int,int));
-STATIC_DCL void FDECL(savedamage, (int,int));
-STATIC_DCL void FDECL(saveobjchn, (int,struct obj *,int));
-STATIC_DCL void FDECL(savemonchn, (int,struct monst *,int));
-STATIC_DCL void FDECL(savetrapchn, (int,struct trap *,int));
-STATIC_DCL void FDECL(savegamestate, (int,int));
+STATIC_DCL void FDECL(savelevchn, (FILE*,int));
+STATIC_DCL void FDECL(savedamage, (FILE*,int));
+STATIC_DCL void FDECL(saveobjchn, (FILE*,struct obj *,int));
+STATIC_DCL void FDECL(savemonchn, (FILE*,struct monst *,int));
+STATIC_DCL void FDECL(savetrapchn, (FILE*,struct trap *,int));
+STATIC_DCL void FDECL(savegamestate, (FILE*,int));
 #ifdef MFLOPPY
 STATIC_DCL void FDECL(savelev0, (int,XCHAR_P,int));
 STATIC_DCL boolean NDECL(swapout_oldest);
@@ -113,7 +110,8 @@ int
 dosave0()
 {
 	const char *fq_save;
-	register int fd, ofd;
+	register FILE* fd;
+        register FILE* ofd;
 	xchar ltmp;
 	d_level uz_save;
 	char whynot[BUFSZ];
@@ -136,8 +134,8 @@ dosave0()
 	HUP if (iflags.window_inited) {
 	    uncompress(fq_save);
 	    fd = open_savefile();
-	    if (fd > 0) {
-		(void) close(fd);
+	    if (fd != 0) {
+		(void) fclose(fd);
 		clear_nhwindow(WIN_MESSAGE);
 		There("seems to be an old save file.");
 		if (yn("Overwrite the old file?") == 'n') {
@@ -150,7 +148,7 @@ dosave0()
 	HUP mark_synch();	/* flush any buffered screen output */
 
 	fd = create_savefile();
-	if(fd < 0) {
+	if(fd == 0) {
 		HUP pline("Cannot open save file.");
 		(void) delete_savefile();	/* ab@unido */
 		return(0);
@@ -174,33 +172,6 @@ dosave0()
 	if (strncmpi("X11", windowprocs.name, 3))
 	  putstr(WIN_MAP, 0, "Saving:");
 #endif
-#ifdef MFLOPPY
-	/* make sure there is enough disk space */
-	if (iflags.checkspace) {
-	    long fds, needed;
-
-	    savelev(fd, ledger_no(&u.uz), COUNT_SAVE);
-	    savegamestate(fd, COUNT_SAVE);
-	    needed = bytes_counted;
-
-	    for (ltmp = 1; ltmp <= maxledgerno(); ltmp++)
-		if (ltmp != ledger_no(&u.uz) && level_info[ltmp].where)
-		    needed += level_info[ltmp].size + (sizeof ltmp);
-	    fds = freediskspace(fq_save);
-	    if (needed > fds) {
-		HUP {
-		    There("is insufficient space on SAVE disk.");
-		    pline("Require %ld bytes but only have %ld.", needed, fds);
-		}
-		flushout();
-		(void) close(fd);
-		(void) delete_savefile();
-		return 0;
-	    }
-
-	    co_false();
-	}
-#endif /* MFLOPPY */
 
 	store_version(fd);
 #ifdef STORE_PLNAME_IN_FILE
@@ -243,17 +214,16 @@ dosave0()
 		mark_synch();
 #endif
 		ofd = open_levelfile(ltmp, whynot);
-		if (ofd < 0) {
+		if (ofd == 0) {
 		    HUP pline("%s", whynot);
-		    (void) close(fd);
+		    (void) fclose(fd);
 		    (void) delete_savefile();
 		    HUP killer = whynot;
 		    HUP done(TRICKED);
 		    return(0);
 		}
-		minit();	/* ZEROCOMP */
 		getlev(ofd, hackpid, ltmp, FALSE);
-		(void) close(ofd);
+		(void) fclose(ofd);
 		bwrite(fd, (genericptr_t) &ltmp, sizeof ltmp); /* level number*/
 		savelev(fd, ltmp, WRITE_SAVE | FREE_SAVE);     /* actual level*/
 		delete_levelfile(ltmp);
@@ -271,7 +241,8 @@ dosave0()
 
 STATIC_OVL void
 savegamestate(fd, mode)
-register int fd, mode;
+register FILE* fd;
+register int mode;
 {
 	int uid;
 
@@ -326,7 +297,8 @@ register int fd, mode;
 void
 savestateinlock()
 {
-	int fd, hpid;
+	FILE* fd;
+        int hpid;
 	static boolean havestate = TRUE;
 	char whynot[BUFSZ];
 
@@ -349,7 +321,7 @@ savestateinlock()
 		 * readable by an external utility
 		 */
 		fd = open_levelfile(0, whynot);
-		if (fd < 0) {
+		if (fd == 0) {
 		    pline("%s", whynot);
 		    pline("Probably someone removed it.");
 		    killer = whynot;
@@ -357,7 +329,7 @@ savestateinlock()
 		    return;
 		}
 
-		(void) read(fd, (genericptr_t) &hpid, sizeof(hpid));
+		(void) mread(fd, (genericptr_t) &hpid, sizeof(hpid));
 		if (hackpid != hpid) {
 		    Sprintf(whynot,
 			    "Level #0 pid (%d) doesn't match ours (%d)!",
@@ -366,20 +338,20 @@ savestateinlock()
 		    killer = whynot;
 		    done(TRICKED);
 		}
-		(void) close(fd);
+		(void) fclose(fd);
 
 		fd = create_levelfile(0, whynot);
-		if (fd < 0) {
+		if (fd == 0) {
 		    pline("%s", whynot);
 		    killer = whynot;
 		    done(TRICKED);
 		    return;
 		}
-		(void) write(fd, (genericptr_t) &hackpid, sizeof(hackpid));
+		(void) bwrite(fd, (genericptr_t) &hackpid, sizeof(hackpid));
 		if (flags.ins_chkpt) {
 		    int currlev = ledger_no(&u.uz);
 
-		    (void) write(fd, (genericptr_t) &currlev, sizeof(currlev));
+		    (void) bwrite(fd, (genericptr_t) &currlev, sizeof(currlev));
 		    save_savefile_name(fd);
 		    store_version(fd);
 #ifdef STORE_PLNAME_IN_FILE
@@ -397,44 +369,9 @@ savestateinlock()
 }
 #endif
 
-#ifdef MFLOPPY
-boolean
-savelev(fd, lev, mode)
-int fd;
-xchar lev;
-int mode;
-{
-	if (mode & COUNT_SAVE) {
-		bytes_counted = 0;
-		savelev0(fd, lev, COUNT_SAVE);
-		/* probably bytes_counted will be filled in again by an
-		 * immediately following WRITE_SAVE anyway, but we'll
-		 * leave it out of checkspace just in case */
-		if (iflags.checkspace) {
-			while (bytes_counted > freediskspace(levels))
-				if (!swapout_oldest())
-					return FALSE;
-		}
-	}
-	if (mode & (WRITE_SAVE | FREE_SAVE)) {
-		bytes_counted = 0;
-		savelev0(fd, lev, mode);
-	}
-	if (mode != FREE_SAVE) {
-		level_info[lev].where = ACTIVE;
-		level_info[lev].time = moves;
-		level_info[lev].size = bytes_counted;
-	}
-	return TRUE;
-}
-
-STATIC_OVL void
-savelev0(fd,lev,mode)
-#else
 void
 savelev(fd,lev,mode)
-#endif
-int fd;
+FILE* fd;
 xchar lev;
 int mode;
 {
@@ -553,244 +490,50 @@ int mode;
 	if (mode != FREE_SAVE) bflush(fd);
 }
 
-#ifdef ZEROCOMP
-/* The runs of zero-run compression are flushed after the game state or a
- * level is written out.  This adds a couple bytes to a save file, where
- * the runs could be mashed together, but it allows gluing together game
- * state and level files to form a save file, and it means the flushing
- * does not need to be specifically called for every other time a level
- * file is written out.
- */
-
-#define RLESC '\0'    /* Leading character for run of LRESC's */
-#define flushoutrun(ln) (bputc(RLESC), bputc(ln), ln = -1)
-
-#ifndef ZEROCOMP_BUFSIZ
-# define ZEROCOMP_BUFSIZ BUFSZ
-#endif
-static NEARDATA unsigned char outbuf[ZEROCOMP_BUFSIZ];
-static NEARDATA unsigned short outbufp = 0;
-static NEARDATA short outrunlength = -1;
-static NEARDATA int bwritefd;
-static NEARDATA boolean compressing = FALSE;
-
-/*dbg()
-{
-    HUP printf("outbufp %d outrunlength %d\n", outbufp,outrunlength);
-}*/
-
-STATIC_OVL void
-bputc(c)
-int c;
-{
-#ifdef MFLOPPY
-    bytes_counted++;
-    if (count_only)
-      return;
-#endif
-    if (outbufp >= sizeof outbuf) {
-	(void) write(bwritefd, outbuf, sizeof outbuf);
-	outbufp = 0;
-    }
-    outbuf[outbufp++] = (unsigned char)c;
-}
-
-/*ARGSUSED*/
 void
 bufon(fd)
-int fd;
+    FILE* fd;
 {
-    compressing = TRUE;
-    return;
-}
-
-/*ARGSUSED*/
-void
-bufoff(fd)
-int fd;
-{
-    if (outbufp) {
-	outbufp = 0;
-	panic("closing file with buffered data still unwritten");
-    }
-    outrunlength = -1;
-    compressing = FALSE;
-    return;
-}
-
-void
-bflush(fd)  /* flush run and buffer */
-register int fd;
-{
-    bwritefd = fd;
-    if (outrunlength >= 0) {	/* flush run */
-	flushoutrun(outrunlength);
-    }
-#ifdef MFLOPPY
-    if (count_only) outbufp = 0;
-#endif
-
-    if (outbufp) {
-	if (write(fd, outbuf, outbufp) != outbufp) {
-#if defined(UNIX) || defined(VMS) || defined(__EMX__)
-	    if (program_state.done_hup)
-		terminate(EXIT_FAILURE);
-	    else
-#endif
-		bclose(fd);	/* panic (outbufp != 0) */
-	}
-	outbufp = 0;
-    }
-}
-
-void
-bwrite(fd, loc, num)
-int fd;
-genericptr_t loc;
-register unsigned num;
-{
-    register unsigned char *bp = (unsigned char *)loc;
-
-    if (!compressing) {
-#ifdef MFLOPPY
-	bytes_counted += num;
-	if (count_only) return;
-#endif
-	if ((unsigned) write(fd, loc, num) != num) {
-#if defined(UNIX) || defined(VMS) || defined(__EMX__)
-	    if (program_state.done_hup)
-		terminate(EXIT_FAILURE);
-	    else
-#endif
-		panic("cannot write %u bytes to file #%d", num, fd);
-	}
-    } else {
-	bwritefd = fd;
-	for (; num; num--, bp++) {
-	    if (*bp == RLESC) {	/* One more char in run */
-		if (++outrunlength == 0xFF) {
-		    flushoutrun(outrunlength);
-		}
-	    } else {		/* end of run */
-		if (outrunlength >= 0) {	/* flush run */
-		    flushoutrun(outrunlength);
-		}
-		bputc(*bp);
-	    }
-	}
-    }
-}
-
-void
-bclose(fd)
-int fd;
-{
-    bufoff(fd);
-    (void) close(fd);
-    return;
-}
-
-#else /* ZEROCOMP */
-
-static int bw_fd = -1;
-static FILE *bw_FILE = 0;
-static boolean buffering = FALSE;
-
-void
-bufon(fd)
-    int fd;
-{
-#ifdef UNIX
-    if(bw_fd >= 0)
-	panic("double buffering unexpected");
-    bw_fd = fd;
-    if((bw_FILE = fdopen(fd, "w")) == 0)
-	panic("buffering of file %d failed", fd);
-#endif
-    buffering = TRUE;
 }
 
 void
 bufoff(fd)
-int fd;
+FILE* fd;
 {
-    bflush(fd);
-    buffering = FALSE;
 }
 
 void
 bflush(fd)
-    int fd;
+    FILE* fd;
 {
-#ifdef UNIX
-    if(fd == bw_fd) {
-	if(fflush(bw_FILE) == EOF)
-	    panic("flush of savefile failed!");
-    }
-#endif
-    return;
+}
+
+void
+bclose(fd)
+FILE *fd;
+{
+    fclose(fd);
 }
 
 void
 bwrite(fd,loc,num)
-register int fd;
+register FILE* fd;
 register genericptr_t loc;
 register unsigned num;
 {
 	boolean failed;
 
-#ifdef MFLOPPY
-	bytes_counted += num;
-	if (count_only) return;
-#endif
-
-#ifdef UNIX
-	if (buffering) {
-	    if(fd != bw_fd)
-		panic("unbuffered write to fd %d (!= %d)", fd, bw_fd);
-
-	    failed = (fwrite(loc, (int)num, 1, bw_FILE) != 1);
-	} else
-#endif /* UNIX */
-	{
-/* lint wants the 3rd arg of write to be an int; lint -p an unsigned */
-#if defined(BSD) || defined(ULTRIX)
-	    failed = (write(fd, loc, (int)num) != (int)num);
-#else /* e.g. SYSV, __TURBOC__ */
-	    failed = (write(fd, loc, num) != num);
-#endif
-	}
+	failed = (fwrite(loc, (int)num, 1, fd) != 1);
 
 	if (failed) {
-#if defined(UNIX) || defined(VMS) || defined(__EMX__)
-	    if (program_state.done_hup)
-		terminate(EXIT_FAILURE);
-	    else
-#endif
 		panic("cannot write %u bytes to file #%d", num, fd);
 	}
 }
 
-void
-bclose(fd)
-    int fd;
-{
-    bufoff(fd);
-#ifdef UNIX
-    if (fd == bw_fd) {
-	(void) fclose(bw_FILE);
-	bw_fd = -1;
-	bw_FILE = 0;
-    } else
-#endif
-	(void) close(fd);
-    return;
-}
-#endif /* ZEROCOMP */
-
 STATIC_OVL void
 savelevchn(fd, mode)
-register int fd, mode;
+register FILE* fd;
+register int mode;
 {
 	s_level	*tmplev, *tmplev2;
 	int cnt = 0;
@@ -812,7 +555,8 @@ register int fd, mode;
 
 STATIC_OVL void
 savedamage(fd, mode)
-register int fd, mode;
+register FILE* fd;
+register int mode;
 {
 	register struct damage *damageptr, *tmp_dam;
 	unsigned int xl = 0;
@@ -837,7 +581,8 @@ register int fd, mode;
 
 STATIC_OVL void
 saveobjchn(fd, otmp, mode)
-register int fd, mode;
+register FILE* fd;
+register int mode;
 register struct obj *otmp;
 {
 	register struct obj *otmp2;
@@ -869,7 +614,8 @@ register struct obj *otmp;
 
 STATIC_OVL void
 savemonchn(fd, mtmp, mode)
-register int fd, mode;
+register FILE* fd;
+register int mode;
 register struct monst *mtmp;
 {
 	register struct monst *mtmp2;
@@ -899,7 +645,8 @@ register struct monst *mtmp;
 
 STATIC_OVL void
 savetrapchn(fd, trap, mode)
-register int fd, mode;
+register FILE* fd;
+register int mode;
 register struct trap *trap;
 {
 	register struct trap *trap2;
@@ -923,7 +670,8 @@ register struct trap *trap;
  */
 void
 savefruitchn(fd, mode)
-register int fd, mode;
+register FILE* fd;
+register int mode;
 {
 	register struct fruit *f2, *f1;
 

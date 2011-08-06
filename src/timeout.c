@@ -1289,10 +1289,10 @@ STATIC_DCL void FDECL(print_queue, (winid, timer_element *));
 STATIC_DCL void FDECL(insert_timer, (timer_element *));
 STATIC_DCL timer_element *FDECL(remove_timer, (timer_element **, SHORT_P,
 								genericptr_t));
-STATIC_DCL void FDECL(write_timer, (int, timer_element *));
+STATIC_DCL void FDECL(write_timer, (FILE*, timer_element *));
 STATIC_DCL boolean FDECL(mon_is_local, (struct monst *));
 STATIC_DCL boolean FDECL(timer_is_local, (timer_element *));
-STATIC_DCL int FDECL(maybe_write_timer, (int, int, BOOLEAN_P));
+STATIC_DCL int FDECL(maybe_write_timer, (FILE*, int, BOOLEAN_P));
 
 /* ordered timer list */
 static timer_element *timer_base;		/* "active" */
@@ -1606,7 +1606,7 @@ genericptr_t arg;
 
 STATIC_OVL void
 write_timer(fd, timer)
-    int fd;
+    FILE* fd;
     timer_element *timer;
 {
     genericptr_t arg_save;
@@ -1718,7 +1718,8 @@ timer_is_local(timer)
  */
 STATIC_OVL int
 maybe_write_timer(fd, range, write_it)
-    int fd, range;
+    FILE* fd;
+    int range;
     boolean write_it;
 {
     int count = 0;
@@ -1763,7 +1764,8 @@ maybe_write_timer(fd, range, write_it)
  */
 void
 save_timers(fd, mode, range)
-    int fd, mode, range;
+    FILE* fd;
+    int mode, range;
 {
     timer_element *curr, *prev, *next_timer=0;
     int count;
@@ -1802,7 +1804,8 @@ save_timers(fd, mode, range)
  */
 void
 restore_timers(fd, range, ghostly, adjust)
-    int fd, range;
+    FILE* fd;
+    int range;
     boolean ghostly;	/* restoring from a ghost level */
     long adjust;	/* how much to adjust timeout */
 {

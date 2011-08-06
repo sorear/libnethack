@@ -1089,7 +1089,8 @@ water_friction()
 
 void
 save_waterlevel(fd, mode)
-int fd, mode;
+FILE* fd;
+int mode;
 {
 	register struct bubble *b;
 
@@ -1112,7 +1113,7 @@ int fd, mode;
 
 void
 restore_waterlevel(fd)
-register int fd;
+register FILE* fd;
 {
 	register struct bubble *b = (struct bubble *)0, *btmp;
 	register int i;

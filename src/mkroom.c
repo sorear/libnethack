@@ -24,8 +24,8 @@ STATIC_DCL coord * FDECL(shrine_pos, (int));
 STATIC_DCL struct permonst * NDECL(morguemon);
 STATIC_DCL struct permonst * NDECL(antholemon);
 STATIC_DCL struct permonst * NDECL(squadmon);
-STATIC_DCL void FDECL(save_room, (int,struct mkroom *));
-STATIC_DCL void FDECL(rest_room, (int,struct mkroom *));
+STATIC_DCL void FDECL(save_room, (FILE*,struct mkroom *));
+STATIC_DCL void FDECL(rest_room, (FILE*,struct mkroom *));
 #endif /* OVLB */
 
 #define sq(x) ((x)*(x))
@@ -711,7 +711,7 @@ gotone:
 
 STATIC_OVL void
 save_room(fd, r)
-int	fd;
+FILE*	fd;
 struct mkroom *r;
 {
 	short i;
@@ -731,7 +731,7 @@ struct mkroom *r;
 
 void
 save_rooms(fd)
-int fd;
+FILE* fd;
 {
 	short i;
 
@@ -743,7 +743,7 @@ int fd;
 
 STATIC_OVL void
 rest_room(fd, r)
-int fd;
+FILE* fd;
 struct mkroom *r;
 {
 	short i;
@@ -763,7 +763,7 @@ struct mkroom *r;
 
 void
 rest_rooms(fd)
-int	fd;
+FILE*	fd;
 {
 	short i;
 

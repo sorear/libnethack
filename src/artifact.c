@@ -86,7 +86,7 @@ init_artifacts()
 
 void
 save_artifacts(fd)
-int fd;
+FILE* fd;
 {
 	bwrite(fd, (genericptr_t) artiexist, sizeof artiexist);
 	bwrite(fd, (genericptr_t) artidisco, sizeof artidisco);
@@ -94,7 +94,7 @@ int fd;
 
 void
 restore_artifacts(fd)
-int fd;
+FILE* fd;
 {
 	mread(fd, (genericptr_t) artiexist, sizeof artiexist);
 	mread(fd, (genericptr_t) artidisco, sizeof artidisco);

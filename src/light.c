@@ -46,8 +46,8 @@
 
 static light_source *light_base = 0;
 
-STATIC_DCL void FDECL(write_ls, (int, light_source *));
-STATIC_DCL int FDECL(maybe_write_ls, (int, int, BOOLEAN_P));
+STATIC_DCL void FDECL(write_ls, (FILE*, light_source *));
+STATIC_DCL int FDECL(maybe_write_ls, (FILE*, int, BOOLEAN_P));
 
 /* imported from vision.c, for small circles */
 extern char circle_data[];
@@ -229,7 +229,8 @@ unsigned fmflags;
 /* Save all light sources of the given range. */
 void
 save_light_sources(fd, mode, range)
-    int fd, mode, range;
+    FILE* fd;
+    int mode, range;
 {
     int count, actual, is_global;
     light_source **prev, *curr;
@@ -279,7 +280,7 @@ save_light_sources(fd, mode, range)
  */
 void
 restore_light_sources(fd)
-    int fd;
+    FILE* fd;
 {
     int count;
     light_source *ls;
@@ -337,7 +338,8 @@ relink_light_sources(ghostly)
  */
 STATIC_OVL int
 maybe_write_ls(fd, range, write_it)
-    int fd, range;
+    FILE* fd;
+    int range;
     boolean write_it;
 {
     int count = 0, is_global;
@@ -374,7 +376,7 @@ maybe_write_ls(fd, range, write_it)
 /* Write a light source structure to disk. */
 STATIC_OVL void
 write_ls(fd, ls)
-    int fd;
+    FILE* fd;
     light_source *ls;
 {
     genericptr_t arg_save;

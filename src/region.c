@@ -613,7 +613,7 @@ xchar x, y;
  */
 void
 save_regions(fd, mode)
-int fd;
+FILE* fd;
 int mode;
 {
     int i, j;
@@ -663,7 +663,7 @@ skip_lots:
 
 void
 rest_regions(fd, ghostly)
-int fd;
+FILE* fd;
 boolean ghostly; /* If a bones file restore */
 {
     int i, j;

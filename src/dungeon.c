@@ -112,7 +112,7 @@ dumpit()
 /* Save the dungeon structures. */
 void
 save_dungeon(fd, perform_write, free_data)
-    int fd;
+    FILE* fd;
     boolean perform_write, free_data;
 {
     branch *curr, *next;
@@ -150,7 +150,7 @@ save_dungeon(fd, perform_write, free_data)
 /* Restore the dungeon structures. */
 void
 restore_dungeon(fd)
-    int fd;
+    FILE* fd;
 {
     branch *curr, *last;
     int    count, i;

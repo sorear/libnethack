@@ -414,38 +414,21 @@ int lev;
 	return;
 }
 
-int
+FILE*
 create_levelfile(lev, errbuf)
 int lev;
 char errbuf[];
 {
-	int fd;
+	FILE* fd;
 	const char *fq_lock;
 
 	if (errbuf) *errbuf = '\0';
 	set_levelfile_name(lock, lev);
 	fq_lock = fqname(lock, LEVELPREFIX, 0);
 
-#if defined(MICRO) || defined(WIN32)
-	/* Use O_TRUNC to force the file to be shortened if it already
-	 * exists and is currently longer.
-	 */
-# ifdef HOLD_LOCKFILE_OPEN
-	if (lev == 0)
-		fd = open_levelfile_exclusively(fq_lock, lev,
-				O_WRONLY |O_CREAT | O_TRUNC | O_BINARY);
-	else
-# endif
-	fd = open(fq_lock, O_WRONLY |O_CREAT | O_TRUNC | O_BINARY, FCMASK);
-#else
-# ifdef MAC
-	fd = maccreat(fq_lock, LEVL_TYPE);
-# else
-	fd = creat(fq_lock, FCMASK);
-# endif
-#endif /* MICRO || WIN32 */
+        fd = fopen(fq_lock, "wb");
 
-	if (fd >= 0)
+	if (fd != 0)
 	    level_info[lev].flags |= LFILE_EXISTS;
 	else if (errbuf)	/* failure explanation */
 	    Sprintf(errbuf,
@@ -456,37 +439,23 @@ char errbuf[];
 }
 
 
-int
+FILE*
 open_levelfile(lev, errbuf)
 int lev;
 char errbuf[];
 {
-	int fd;
+	FILE* fd;
 	const char *fq_lock;
 
 	if (errbuf) *errbuf = '\0';
 	set_levelfile_name(lock, lev);
 	fq_lock = fqname(lock, LEVELPREFIX, 0);
-#ifdef MFLOPPY
-	/* If not currently accessible, swap it in. */
-	if (level_info[lev].where != ACTIVE)
-		swapin_file(lev);
-#endif
-#ifdef MAC
-	fd = macopen(fq_lock, O_RDONLY | O_BINARY, LEVL_TYPE);
-#else
-# ifdef HOLD_LOCKFILE_OPEN
-	if (lev == 0)
-		fd = open_levelfile_exclusively(fq_lock, lev, O_RDONLY | O_BINARY );
-	else
-# endif
-	fd = open(fq_lock, O_RDONLY | O_BINARY, 0);
-#endif
+	fd = fopen(fq_lock, "rb");
 
 	/* for failure, return an explanation that our caller can use;
 	   settle for `lock' instead of `fq_lock' because the latter
 	   might end up being too big for nethack's BUFSZ */
-	if (fd < 0 && errbuf)
+	if (fd == 0 && errbuf)
 	    Sprintf(errbuf,
 		    "Cannot open file \"%s\" for level %d (errno %d).",
 		    lock, lev, errno);
@@ -533,67 +502,6 @@ clearlocks()
 #endif
 }
 
-#ifdef HOLD_LOCKFILE_OPEN
-STATIC_OVL int
-open_levelfile_exclusively(name, lev, oflag)
-const char *name;
-int lev, oflag;
-{
-	int reslt, fd;
-	if (!lftrack.init) {
-		lftrack.init = 1;
-		lftrack.fd = -1;
-	}
-	if (lftrack.fd >= 0) {
-		/* check for compatible access */
-		if (lftrack.oflag == oflag) {
-			fd = lftrack.fd;
-			reslt = lseek(fd, 0L, SEEK_SET);
-			if (reslt == -1L)
-			    panic("open_levelfile_exclusively: lseek failed %d", errno);
-			lftrack.nethack_thinks_it_is_open = TRUE;
-		} else {
-			really_close();
-			fd = sopen(name, oflag,SH_DENYRW, FCMASK);
-			lftrack.fd = fd;
-			lftrack.oflag = oflag;
-			lftrack.nethack_thinks_it_is_open = TRUE;
-		}
-	} else {
-			fd = sopen(name, oflag,SH_DENYRW, FCMASK);
-			lftrack.fd = fd;
-			lftrack.oflag = oflag;
-			if (fd >= 0)
-			    lftrack.nethack_thinks_it_is_open = TRUE;
-	}
-	return fd;
-}
-
-void
-really_close()
-{
-	int fd = lftrack.fd;
-	lftrack.nethack_thinks_it_is_open = FALSE;
-	lftrack.fd = -1;
-	lftrack.oflag = 0;
-	(void)_close(fd);
-	return;
-}
-
-int
-close(fd)
-int fd;
-{
- 	if (lftrack.fd == fd) {
-		really_close();	/* close it, but reopen it to hold it */
-		fd = open_levelfile(0, (char *)0);
-		lftrack.nethack_thinks_it_is_open = FALSE;
-		return 0;
-	}
-	return _close(fd);
-}
-#endif
-	
 /* ----------  END LEVEL FILE HANDLING ----------- */
 
 
@@ -643,33 +551,22 @@ set_bonestemp_name()
 	return lock;
 }
 
-int
+FILE*
 create_bonesfile(lev, bonesid, errbuf)
 d_level *lev;
 char **bonesid;
 char errbuf[];
 {
 	const char *file;
-	int fd;
+	FILE* fd;
 
 	if (errbuf) *errbuf = '\0';
 	*bonesid = set_bonesfile_name(bones, lev);
 	file = set_bonestemp_name();
 	file = fqname(file, BONESPREFIX, 0);
 
-#if defined(MICRO) || defined(WIN32)
-	/* Use O_TRUNC to force the file to be shortened if it already
-	 * exists and is currently longer.
-	 */
-	fd = open(file, O_WRONLY |O_CREAT | O_TRUNC | O_BINARY, FCMASK);
-#else
-# ifdef MAC
-	fd = maccreat(file, BONE_TYPE);
-# else
-	fd = creat(file, FCMASK);
-# endif
-#endif
-	if (fd < 0 && errbuf) /* failure explanation */
+	fd = fopen(file, "wb");
+	if (fd == 0 && errbuf) /* failure explanation */
 	    Sprintf(errbuf,
 		    "Cannot create bones \"%s\", id %s (errno %d).",
 		    lock, *bonesid, errno);
@@ -704,16 +601,7 @@ d_level *lev;
 	tempname = set_bonestemp_name();
 	tempname = fqname(tempname, BONESPREFIX, 1);
 
-#if (defined(SYSV) && !defined(SVR4)) || defined(GENIX)
-	/* old SYSVs don't have rename.  Some SVR3's may, but since they
-	 * also have link/unlink, it doesn't matter. :-)
-	 */
-	(void) unlink(fq_bones);
-	ret = link(tempname, fq_bones);
-	ret += unlink(tempname);
-#else
 	ret = rename(tempname, fq_bones);
-#endif
 #ifdef WIZARD
 	if (wizard && ret != 0)
 		pline("couldn't rename %s to %s.", tempname, fq_bones);
@@ -721,22 +609,18 @@ d_level *lev;
 }
 
 
-int
+FILE*
 open_bonesfile(lev, bonesid)
 d_level *lev;
 char **bonesid;
 {
 	const char *fq_bones;
-	int fd;
+	FILE* fd;
 
 	*bonesid = set_bonesfile_name(bones, lev);
 	fq_bones = fqname(bones, BONESPREFIX, 0);
 	uncompress(fq_bones);	/* no effect if nonexistent */
-#ifdef MAC
-	fd = macopen(fq_bones, O_RDONLY | O_BINARY, BONE_TYPE);
-#else
-	fd = open(fq_bones, O_RDONLY | O_BINARY, 0);
-#endif
+	fd = fopen(fq_bones, "rb");
 	return fd;
 }
 
@@ -775,9 +659,9 @@ set_savefile_name()
 #ifdef INSURANCE
 void
 save_savefile_name(fd)
-int fd;
+FILE* fd;
 {
-	(void) write(fd, (genericptr_t) SAVEF, sizeof(SAVEF));
+	(void) fwrite((genericptr_t) SAVEF, 1, sizeof(SAVEF), fd);
 }
 #endif
 
@@ -793,28 +677,28 @@ set_error_savefile()
 
 
 /* create save file, overwriting one if it already exists */
-int
+FILE*
 create_savefile()
 {
 	const char *fq_save;
-	int fd;
+	FILE* fd;
 
 	fq_save = fqname(SAVEF, SAVEPREFIX, 0);
-	fd = creat(fq_save, FCMASK);
+	fd = fopen(fq_save, "wb");
 
 	return fd;
 }
 
 
 /* open savefile for reading */
-int
+FILE*
 open_savefile()
 {
 	const char *fq_save;
-	int fd;
+	FILE* fd;
 
 	fq_save = fqname(SAVEF, SAVEPREFIX, 0);
-	fd = open(fq_save, O_RDONLY | O_BINARY, 0);
+	fd = fopen(fq_save, "rb");
 	return fd;
 }
 
@@ -829,11 +713,11 @@ delete_savefile()
 
 
 /* try to open up a save file and prepare to restore it */
-int
+FILE*
 restore_saved_game()
 {
 	const char *fq_save;
-	int fd;
+	FILE* fd;
 
 	set_savefile_name();
 #ifdef MFLOPPY
@@ -843,10 +727,10 @@ restore_saved_game()
 	fq_save = fqname(SAVEF, SAVEPREFIX, 0);
 
 	uncompress(fq_save);
-	if ((fd = open_savefile()) < 0) return fd;
+	if ((fd = open_savefile()) == 0) return fd;
 
 	if (!uptodate(fd, fq_save)) {
-	    (void) close(fd),  fd = -1;
+	    (void) fclose(fd),  fd = 0;
 	    (void) delete_savefile();
 	}
 	return fd;

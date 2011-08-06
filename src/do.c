@@ -21,7 +21,7 @@ STATIC_PTR int NDECL(wipeoff);
 STATIC_DCL int FDECL(menu_drop, (int));
 #endif
 #ifdef OVL2
-STATIC_DCL int NDECL(currentlevel_rewrite);
+STATIC_DCL FILE* NDECL(currentlevel_rewrite);
 STATIC_DCL void NDECL(final_level);
 /* static boolean FDECL(badspot, (XCHAR_P,XCHAR_P)); */
 #endif
@@ -884,10 +884,10 @@ doup()
 d_level save_dlevel = {0, 0};
 
 /* check that we can write out the current level */
-STATIC_OVL int
+STATIC_OVL FILE*
 currentlevel_rewrite()
 {
-	register int fd;
+	register FILE* fd;
 	char whynot[BUFSZ];
 
 	/* since level change might be a bit slow, flush any buffered screen
@@ -895,7 +895,7 @@ currentlevel_rewrite()
 	mark_synch();
 
 	fd = create_levelfile(ledger_no(&u.uz), whynot);
-	if (fd < 0) {
+	if (fd == 0) {
 		/*
 		 * This is not quite impossible: e.g., we may have
 		 * exceeded our quota. If that is the case then we
@@ -904,16 +904,16 @@ currentlevel_rewrite()
 		 * writable.
 		 */
 		pline("%s", whynot);
-		return -1;
+		return 0;
 	}
 
 #ifdef MFLOPPY
 	if (!savelev(fd, ledger_no(&u.uz), COUNT_SAVE)) {
-		(void) close(fd);
+		(void) fclose(fd);
 		delete_levelfile(ledger_no(&u.uz));
 		pline("NetHack is out of disk space for making levels!");
 		You("can save, quit, or continue playing.");
-		return -1;
+		return 0;
 	}
 #endif
 	return fd;
@@ -923,12 +923,12 @@ currentlevel_rewrite()
 void
 save_currentstate()
 {
-	int fd;
+	FILE* fd;
 
 	if (flags.ins_chkpt) {
 		/* write out just-attained level, with pets and everything */
 		fd = currentlevel_rewrite();
-		if(fd < 0) return;
+		if(fd == 0) return;
 		bufon(fd);
 		savelev(fd,ledger_no(&u.uz), WRITE_SAVE);
 		bclose(fd);
@@ -954,7 +954,8 @@ goto_level(newlevel, at_stairs, falling, portal)
 d_level *newlevel;
 boolean at_stairs, falling, portal;
 {
-	int fd, l_idx;
+	FILE* fd;
+        int l_idx;
 	xchar new_ledger;
 	boolean cant_go_back,
 		up = (depth(newlevel) < depth(&u.uz)),
@@ -1026,7 +1027,7 @@ boolean at_stairs, falling, portal;
 	if (on_level(newlevel, &u.uz)) return;		/* this can happen */
 
 	fd = currentlevel_rewrite();
-	if (fd < 0) return;
+	if (fd == 0) return;
 
 	if (falling) /* assuming this is only trap door or hole */
 	    impact_drop((struct obj *)0, u.ux, u.uy, newlevel->dlevel);
@@ -1100,7 +1101,7 @@ boolean at_stairs, falling, portal;
 	} else {
 		/* returning to previously visited level; reload it */
 		fd = open_levelfile(new_ledger, whynot);
-		if (fd < 0) {
+		if (fd == 0) {
 			pline("%s", whynot);
 			pline("Probably someone removed it.");
 			killer = whynot;
@@ -1108,9 +1109,8 @@ boolean at_stairs, falling, portal;
 			/* we'll reach here if running in wizard mode */
 			error("Cannot continue this game.");
 		}
-		minit();	/* ZEROCOMP */
 		getlev(fd, hackpid, new_ledger, FALSE);
-		(void) close(fd);
+		(void) fclose(fd);
 	}
 	/* do this prior to level-change pline messages */
 	vision_reset();		/* clear old level's line-of-sight */

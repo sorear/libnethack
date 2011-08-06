@@ -52,8 +52,8 @@ E int FDECL(unfixable_trouble_count,(BOOLEAN_P));
 /* ### artifact.c ### */
 
 E void NDECL(init_artifacts);
-E void FDECL(save_artifacts, (int));
-E void FDECL(restore_artifacts, (int));
+E void FDECL(save_artifacts, (FILE*));
+E void FDECL(restore_artifacts, (FILE*));
 E const char *FDECL(artiname, (int));
 E struct obj *FDECL(mk_artifact, (struct obj *,ALIGNTYP_P));
 E const char *FDECL(artifact_name, (const char *,short *));
@@ -460,8 +460,8 @@ E void FDECL(assign_rogue_graphics, (BOOLEAN_P));
 
 /* ### dungeon.c ### */
 
-E void FDECL(save_dungeon, (int,BOOLEAN_P,BOOLEAN_P));
-E void FDECL(restore_dungeon, (int));
+E void FDECL(save_dungeon, (FILE*,BOOLEAN_P,BOOLEAN_P));
+E void FDECL(restore_dungeon, (FILE*));
 E void FDECL(insert_branch, (branch *,BOOLEAN_P));
 E void NDECL(init_dungeons);
 E s_level *FDECL(find_level, (const char *));
@@ -574,8 +574,8 @@ E void FDECL(make_engr_at, (int,int,const char *,long,XCHAR_P));
 E void FDECL(del_engr_at, (int,int));
 E int NDECL(freehand);
 E int NDECL(doengrave);
-E void FDECL(save_engravings, (int,int));
-E void FDECL(rest_engravings, (int));
+E void FDECL(save_engravings, (FILE*,int));
+E void FDECL(rest_engravings, (FILE*));
 E void FDECL(del_engr, (struct engr *));
 E void FDECL(rloc_engr, (struct engr *));
 E void FDECL(make_grave, (int,int,const char *));
@@ -609,35 +609,35 @@ E char *FDECL(fname_encode, (const char *, CHAR_P, char *, char *, int));
 E char *FDECL(fname_decode, (CHAR_P, char *, char *, int));
 E const char *FDECL(fqname, (const char *, int, int));
 E FILE *FDECL(fopen_datafile, (const char *,const char *,int));
-E boolean FDECL(uptodate, (int,const char *));
-E void FDECL(store_version, (int));
+E boolean FDECL(uptodate, (FILE*,const char *));
+E void FDECL(store_version, (FILE*));
 #ifdef MFLOPPY
 E void NDECL(set_lock_and_bones);
 #endif
 E void FDECL(set_levelfile_name, (char *,int));
-E int FDECL(create_levelfile, (int,char *));
-E int FDECL(open_levelfile, (int,char *));
+E FILE* FDECL(create_levelfile, (int,char *));
+E FILE* FDECL(open_levelfile, (int,char *));
 E void FDECL(delete_levelfile, (int));
 E void NDECL(clearlocks);
-E int FDECL(create_bonesfile, (d_level*,char **, char *));
+E FILE* FDECL(create_bonesfile, (d_level*,char **, char *));
 #ifdef MFLOPPY
 E void NDECL(cancel_bonesfile);
 #endif
 E void FDECL(commit_bonesfile, (d_level *));
-E int FDECL(open_bonesfile, (d_level*,char **));
+E FILE* FDECL(open_bonesfile, (d_level*,char **));
 E int FDECL(delete_bonesfile, (d_level*));
 E void NDECL(compress_bonesfile);
 E void NDECL(set_savefile_name);
 #ifdef INSURANCE
-E void FDECL(save_savefile_name, (int));
+E void FDECL(save_savefile_name, (FILE*));
 #endif
 #if defined(WIZARD) && !defined(MICRO)
 E void NDECL(set_error_savefile);
 #endif
-E int NDECL(create_savefile);
-E int NDECL(open_savefile);
+E FILE* NDECL(create_savefile);
+E FILE* NDECL(open_savefile);
 E int NDECL(delete_savefile);
-E int NDECL(restore_saved_game);
+E FILE* NDECL(restore_saved_game);
 E void FDECL(compress, (const char *));
 E void FDECL(uncompress, (const char *));
 #ifdef USER_SOUNDS
@@ -833,8 +833,8 @@ E void FDECL(new_light_source, (XCHAR_P, XCHAR_P, int, int, genericptr_t));
 E void FDECL(del_light_source, (int, genericptr_t));
 E void FDECL(do_light_sources, (char **));
 E struct monst *FDECL(find_mid, (unsigned, unsigned));
-E void FDECL(save_light_sources, (int, int, int));
-E void FDECL(restore_light_sources, (int));
+E void FDECL(save_light_sources, (FILE*, int, int));
+E void FDECL(restore_light_sources, (FILE*));
 E void FDECL(relink_light_sources, (BOOLEAN_P));
 E void FDECL(obj_move_light_source, (struct obj *, struct obj *));
 E boolean NDECL(any_light_source);
@@ -988,8 +988,8 @@ E void FDECL(place_lregion, (XCHAR_P,XCHAR_P,XCHAR_P,XCHAR_P,
 			     XCHAR_P,d_level *));
 E void NDECL(movebubbles);
 E void NDECL(water_friction);
-E void FDECL(save_waterlevel, (int,int));
-E void FDECL(restore_waterlevel, (int));
+E void FDECL(save_waterlevel, (FILE*,int));
+E void FDECL(restore_waterlevel, (FILE*));
 E const char *FDECL(waterbody_name, (XCHAR_P,XCHAR_P));
 
 /* ### mkobj.c ### */
@@ -1051,8 +1051,8 @@ E boolean FDECL(inside_room, (struct mkroom *,XCHAR_P,XCHAR_P));
 E boolean FDECL(somexy, (struct mkroom *,coord *));
 E void FDECL(mkundead, (coord *,BOOLEAN_P,int));
 E struct permonst *NDECL(courtmon);
-E void FDECL(save_rooms, (int));
-E void FDECL(rest_rooms, (int));
+E void FDECL(save_rooms, (FILE*));
+E void FDECL(rest_rooms, (FILE*));
 E struct mkroom *FDECL(search_special, (SCHAR_P));
 
 /* ### mon.c ### */
@@ -1294,8 +1294,8 @@ E void NDECL(synch_cursor);
 E void NDECL(init_objects);
 E int NDECL(find_skates);
 E void NDECL(oinit);
-E void FDECL(savenames, (int,int));
-E void FDECL(restnames, (int));
+E void FDECL(savenames, (FILE*,int));
+E void FDECL(restnames, (FILE*));
 E void FDECL(discover_object, (int,BOOLEAN_P,BOOLEAN_P));
 E void FDECL(undiscover_object, (int));
 E int NDECL(dodiscovered);
@@ -1632,23 +1632,19 @@ E void NDECL(update_player_regions);
 E void FDECL(update_monster_region, (struct monst *));
 E NhRegion *FDECL(visible_region_at, (XCHAR_P,XCHAR_P));
 E void FDECL(show_region, (NhRegion*, XCHAR_P, XCHAR_P));
-E void FDECL(save_regions, (int,int));
-E void FDECL(rest_regions, (int,BOOLEAN_P));
+E void FDECL(save_regions, (FILE*,int));
+E void FDECL(rest_regions, (FILE*,BOOLEAN_P));
 E NhRegion* FDECL(create_gas_cloud, (XCHAR_P, XCHAR_P, int, int));
 
 /* ### restore.c ### */
 
 E void FDECL(inven_inuse, (BOOLEAN_P));
-E int FDECL(dorecover, (int));
+E int FDECL(dorecover, (FILE*));
 E void FDECL(trickery, (char *));
-E void FDECL(getlev, (int,int,XCHAR_P,BOOLEAN_P));
+E void FDECL(getlev, (FILE*,int,XCHAR_P,BOOLEAN_P));
 E void NDECL(minit);
 E boolean FDECL(lookup_id_mapping, (unsigned, unsigned *));
-#ifdef ZEROCOMP
-E int FDECL(mread, (int,genericptr_t,unsigned int));
-#else
-E void FDECL(mread, (int,genericptr_t,unsigned int));
-#endif
+E void FDECL(mread, (FILE*,genericptr_t,unsigned int));
 
 /* ### rip.c ### */
 
@@ -1698,8 +1694,8 @@ E char *FDECL(root_plselection_prompt, (char *, int, int, int, int, int));
 E char *FDECL(getrumor, (int,char *, BOOLEAN_P));
 E void FDECL(outrumor, (int,int));
 E void FDECL(outoracle, (BOOLEAN_P, BOOLEAN_P));
-E void FDECL(save_oracles, (int,int));
-E void FDECL(restore_oracles, (int));
+E void FDECL(save_oracles, (FILE*,int));
+E void FDECL(restore_oracles, (FILE*));
 E int FDECL(doconsult, (struct monst *));
 
 /* ### save.c ### */
@@ -1712,19 +1708,13 @@ E int NDECL(dosave0);
 #ifdef INSURANCE
 E void NDECL(savestateinlock);
 #endif
-#ifdef MFLOPPY
-E boolean FDECL(savelev, (int,XCHAR_P,int));
-E boolean FDECL(swapin_file, (int));
-E void NDECL(co_false);
-#else
-E void FDECL(savelev, (int,XCHAR_P,int));
-#endif
-E void FDECL(bufon, (int));
-E void FDECL(bufoff, (int));
-E void FDECL(bflush, (int));
-E void FDECL(bwrite, (int,genericptr_t,unsigned int));
-E void FDECL(bclose, (int));
-E void FDECL(savefruitchn, (int,int));
+E void FDECL(savelev, (FILE*,XCHAR_P,int));
+E void FDECL(bufon, (FILE*));
+E void FDECL(bufoff, (FILE*));
+E void FDECL(bflush, (FILE*));
+E void FDECL(bwrite, (FILE*,genericptr_t,unsigned int));
+E void FDECL(bclose, (FILE*));
+E void FDECL(savefruitchn, (FILE*,int));
 E void NDECL(free_dungeons);
 E void NDECL(freedynamicdata);
 
@@ -1933,8 +1923,8 @@ E void FDECL(obj_move_timers, (struct obj *, struct obj *));
 E void FDECL(obj_split_timers, (struct obj *, struct obj *));
 E void FDECL(obj_stop_timers, (struct obj *));
 E boolean FDECL(obj_is_local, (struct obj *));
-E void FDECL(save_timers, (int,int,int));
-E void FDECL(restore_timers, (int,int,BOOLEAN_P,long));
+E void FDECL(save_timers, (FILE*,int,int));
+E void FDECL(restore_timers, (FILE*,int,BOOLEAN_P,long));
 E void FDECL(relink_timers, (BOOLEAN_P));
 #ifdef WIZARD
 E int NDECL(wiz_timeout_queue);
@@ -2194,8 +2184,8 @@ E void FDECL(wormhitu, (struct monst *));
 E void FDECL(cutworm, (struct monst *,XCHAR_P,XCHAR_P,struct obj *));
 E void FDECL(see_wsegs, (struct monst *));
 E void FDECL(detect_wsegs, (struct monst *,BOOLEAN_P));
-E void FDECL(save_worm, (int,int));
-E void FDECL(rest_worm, (int));
+E void FDECL(save_worm, (FILE*,int));
+E void FDECL(rest_worm, (FILE*));
 E void FDECL(place_wsegs, (struct monst *));
 E void FDECL(remove_worm, (struct monst *));
 E void FDECL(place_worm_tail_randomly, (struct monst *,XCHAR_P,XCHAR_P));

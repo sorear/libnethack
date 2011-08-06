@@ -31,7 +31,7 @@ main(argc,argv)
 int argc;
 char *argv[];
 {
-	register int fd;
+	register FILE* fd;
 	const char *fq_lock;
 #ifdef CHDIR
 	register char *dir;
@@ -140,15 +140,15 @@ char *argv[];
 	set_levelfile_name(lock, 0);
 
 	fq_lock = fqname(lock, LEVELPREFIX, 0);
-	fd = creat(fq_lock, FCMASK);
-	if(fd == -1) {
+	fd = fopen(fq_lock, "wb");
+	if(fd == 0) {
 		error("cannot creat lock file (%s).", fq_lock);
 	} else {
-		if(write(fd, (genericptr_t) &hackpid, sizeof(hackpid))
+		if(fwrite((genericptr_t) &hackpid, 1, sizeof(hackpid), fd)
 		    != sizeof(hackpid)){
 			error("cannot write lock (%s)", fq_lock);
 		}
-		if(close(fd) == -1) {
+		if(fclose(fd) == -1) {
 			error("cannot close lock (%s)", fq_lock);
 		}
 	}
@@ -174,7 +174,7 @@ char *argv[];
 
 	display_gamewindows();
 
-	if ((fd = restore_saved_game()) >= 0) {
+	if ((fd = restore_saved_game()) != 0) {
 #ifdef WIZARD
 		/* Since wizard is actually flags.debug, restoring might
 		 * overwrite it.

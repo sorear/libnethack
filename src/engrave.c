@@ -1113,7 +1113,8 @@ doengrave()
 
 void
 save_engravings(fd, mode)
-int fd, mode;
+FILE* fd;
+int mode;
 {
 	register struct engr *ep = head_engr;
 	register struct engr *ep2;
@@ -1137,7 +1138,7 @@ int fd, mode;
 
 void
 rest_engravings(fd)
-int fd;
+FILE* fd;
 {
 	register struct engr *ep;
 	unsigned lth;

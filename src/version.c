@@ -102,15 +102,14 @@ boolean complain;
    but now examines the initial part of the file's contents */
 boolean
 uptodate(fd, name)
-int fd;
+FILE* fd;
 const char *name;
 {
     int rlen;
     struct version_info vers_info;
     boolean verbose = name ? TRUE : FALSE;
 
-    rlen = read(fd, (genericptr_t) &vers_info, sizeof vers_info);
-    minit();		/* ZEROCOMP */
+    rlen = fread((genericptr_t) &vers_info, 1, sizeof vers_info, fd);
     if (rlen == 0) {
 	if (verbose) {
 	    pline("File \"%s\" is empty?", name);
@@ -127,7 +126,7 @@ const char *name;
 
 void
 store_version(fd)
-int fd;
+FILE* fd;
 {
 	const static struct version_info version_data = {
 			VERSION_NUMBER, VERSION_FEATURES,

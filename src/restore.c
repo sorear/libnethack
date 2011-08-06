@@ -15,20 +15,17 @@ extern int dotrow;	/* shared with save */
 extern void FDECL(substitute_tiles, (d_level *));       /* from tile.c */
 #endif
 
-#ifdef ZEROCOMP
-static int NDECL(mgetc);
-#endif
 STATIC_DCL void NDECL(find_lev_obj);
-STATIC_DCL void FDECL(restlevchn, (int));
-STATIC_DCL void FDECL(restdamage, (int,BOOLEAN_P));
-STATIC_DCL struct obj *FDECL(restobjchn, (int,BOOLEAN_P,BOOLEAN_P));
-STATIC_DCL struct monst *FDECL(restmonchn, (int,BOOLEAN_P));
-STATIC_DCL struct fruit *FDECL(loadfruitchn, (int));
+STATIC_DCL void FDECL(restlevchn, (FILE*));
+STATIC_DCL void FDECL(restdamage, (FILE*,BOOLEAN_P));
+STATIC_DCL struct obj *FDECL(restobjchn, (FILE*,BOOLEAN_P,BOOLEAN_P));
+STATIC_DCL struct monst *FDECL(restmonchn, (FILE*,BOOLEAN_P));
+STATIC_DCL struct fruit *FDECL(loadfruitchn, (FILE*));
 STATIC_DCL void FDECL(freefruitchn, (struct fruit *));
 STATIC_DCL void FDECL(ghostfruit, (struct obj *));
-STATIC_DCL boolean FDECL(restgamestate, (int, unsigned int *, unsigned int *));
+STATIC_DCL boolean FDECL(restgamestate, (FILE*, unsigned int *, unsigned int *));
 STATIC_DCL void FDECL(restlevelstate, (unsigned int, unsigned int));
-STATIC_DCL int FDECL(restlevelfile, (int,XCHAR_P));
+STATIC_DCL int FDECL(restlevelfile, (FILE*,XCHAR_P));
 STATIC_DCL void FDECL(reset_oattached_mids, (BOOLEAN_P));
 
 /*
@@ -126,7 +123,7 @@ boolean quietly;
 
 STATIC_OVL void
 restlevchn(fd)
-register int fd;
+register FILE* fd;
 {
 	int cnt;
 	s_level	*tmplev, *x;
@@ -149,7 +146,7 @@ register int fd;
 
 STATIC_OVL void
 restdamage(fd, ghostly)
-int fd;
+FILE* fd;
 boolean ghostly;
 {
 	int counter;
@@ -192,7 +189,7 @@ boolean ghostly;
 
 STATIC_OVL struct obj *
 restobjchn(fd, ghostly, frozen)
-register int fd;
+register FILE* fd;
 boolean ghostly, frozen;
 {
 	register struct obj *otmp, *otmp2 = 0;
@@ -242,7 +239,7 @@ boolean ghostly, frozen;
 
 STATIC_OVL struct monst *
 restmonchn(fd, ghostly)
-register int fd;
+register FILE* fd;
 boolean ghostly;
 {
 	register struct monst *mtmp, *mtmp2 = 0;
@@ -311,7 +308,7 @@ boolean ghostly;
 
 STATIC_OVL struct fruit *
 loadfruitchn(fd)
-int fd;
+FILE* fd;
 {
 	register struct fruit *flist, *fnext;
 
@@ -355,7 +352,7 @@ register struct obj *otmp;
 STATIC_OVL
 boolean
 restgamestate(fd, stuckid, steedid)
-register int fd;
+register FILE* fd;
 unsigned int *stuckid, *steedid;	/* STEED */
 {
 	/* discover is actually flags.explore */
@@ -471,60 +468,21 @@ unsigned int stuckid, steedid;	/* STEED */
 /*ARGSUSED*/	/* fd used in MFLOPPY only */
 STATIC_OVL int
 restlevelfile(fd, ltmp)
-register int fd;
+register FILE* fd;
 xchar ltmp;
 #if defined(macintosh) && (defined(__SC__) || defined(__MRC__))
 # pragma unused(fd)
 #endif
 {
-	register int nfd;
+	register FILE* nfd;
 	char whynot[BUFSZ];
 
 	nfd = create_levelfile(ltmp, whynot);
-	if (nfd < 0) {
+	if (nfd == 0) {
 		/* BUG: should suppress any attempt to write a panic
 		   save file if file creation is now failing... */
 		panic("restlevelfile: %s", whynot);
 	}
-#ifdef MFLOPPY
-	if (!savelev(nfd, ltmp, COUNT_SAVE)) {
-
-		/* The savelev can't proceed because the size required
-		 * is greater than the available disk space.
-		 */
-		pline("Not enough space on `%s' to restore your game.",
-			levels);
-
-		/* Remove levels and bones that may have been created.
-		 */
-		(void) close(nfd);
-# ifdef AMIGA
-		clearlocks();
-# else
-		eraseall(levels, alllevels);
-		eraseall(levels, allbones);
-
-		/* Perhaps the person would like to play without a
-		 * RAMdisk.
-		 */
-		if (ramdisk) {
-			/* PlaywoRAMdisk may not return, but if it does
-			 * it is certain that ramdisk will be 0.
-			 */
-			playwoRAMdisk();
-			/* Rewind save file and try again */
-			(void) lseek(fd, (off_t)0, 0);
-			(void) uptodate(fd, (char *)0);	/* skip version */
-			return dorecover(fd);	/* 0 or 1 */
-		} else {
-# endif
-			pline("Be seeing you...");
-			terminate(EXIT_SUCCESS);
-# ifndef AMIGA
-		}
-# endif
-	}
-#endif
 	bufon(nfd);
 	savelev(nfd, ltmp, WRITE_SAVE | FREE_SAVE);
 	bclose(nfd);
@@ -533,7 +491,7 @@ xchar ltmp;
 
 int
 dorecover(fd)
-register int fd;
+register FILE* fd;
 {
 	unsigned int stuckid = 0, steedid = 0;	/* not a register */
 	xchar ltmp;
@@ -548,8 +506,8 @@ register int fd;
 	getlev(fd, 0, (xchar)0, FALSE);
 	if (!restgamestate(fd, &stuckid, &steedid)) {
 		display_nhwindow(WIN_MESSAGE, TRUE);
-		savelev(-1, 0, FREE_SAVE);	/* discard current level */
-		(void) close(fd);
+		savelev(0, 0, FREE_SAVE);	/* discard current level */
+		(void) fclose(fd);
 		(void) delete_savefile();
 		restoring = FALSE;
 		return(0);
@@ -595,11 +553,7 @@ register int fd;
     	  putstr(WIN_MAP, 0, "Restoring:");
 #endif
 	while(1) {
-#ifdef ZEROCOMP
-		if(mread(fd, (genericptr_t) &ltmp, sizeof ltmp) < 0)
-#else
-		if(read(fd, (genericptr_t) &ltmp, sizeof ltmp) != sizeof ltmp)
-#endif
+		if(fread((genericptr_t) &ltmp, sizeof ltmp, 1, fd) <= 0)
 			break;
 		getlev(fd, 0, ltmp, FALSE);
 #ifdef MICRO
@@ -617,17 +571,13 @@ register int fd;
 		if (rtmp < 2) return(rtmp);  /* dorecover called recursively */
 	}
 
-#ifdef BSD
-	(void) lseek(fd, 0L, 0);
-#else
-	(void) lseek(fd, (off_t)0, 0);
-#endif
+	(void) fseek(fd, 0, SEEK_SET);
 	(void) uptodate(fd, (char *)0);		/* skip version info */
 #ifdef STORE_PLNAME_IN_FILE
 	mread(fd, (genericptr_t) plname, PL_NSIZ);
 #endif
 	getlev(fd, 0, (xchar)0, FALSE);
-	(void) close(fd);
+	(void) fclose(fd);
 
 	if (!wizard && !discover)
 		(void) delete_savefile();
@@ -685,7 +635,8 @@ char *reason;
 
 void
 getlev(fd, pid, lev, ghostly)
-int fd, pid;
+FILE* fd;
+int pid;
 xchar lev;
 boolean ghostly;
 {
@@ -702,9 +653,6 @@ boolean ghostly;
 	if (ghostly)
 	    clear_id_mapping();
 
-#if defined(MSDOS) || defined(OS2)
-	setmode(fd, O_BINARY);
-#endif
 	/* Load the old fruit info.  We have to do it first, so the
 	 * information is available when restoring the objects.
 	 */
@@ -986,99 +934,24 @@ boolean ghostly;
 }
 
 
-#ifdef ZEROCOMP
-#define RLESC '\0'	/* Leading character for run of RLESC's */
-
-#ifndef ZEROCOMP_BUFSIZ
-#define ZEROCOMP_BUFSIZ BUFSZ
-#endif
-static NEARDATA unsigned char inbuf[ZEROCOMP_BUFSIZ];
-static NEARDATA unsigned short inbufp = 0;
-static NEARDATA unsigned short inbufsz = 0;
-static NEARDATA short inrunlength = -1;
-static NEARDATA int mreadfd;
-
-static int
-mgetc()
-{
-    if (inbufp >= inbufsz) {
-	inbufsz = read(mreadfd, (genericptr_t)inbuf, sizeof inbuf);
-	if (!inbufsz) {
-	    if (inbufp > sizeof inbuf)
-		error("EOF on file #%d.\n", mreadfd);
-	    inbufp = 1 + sizeof inbuf;  /* exactly one warning :-) */
-	    return -1;
-	}
-	inbufp = 0;
-    }
-    return inbuf[inbufp++];
-}
-
-void
-minit()
-{
-    inbufsz = 0;
-    inbufp = 0;
-    inrunlength = -1;
-}
-
-int
-mread(fd, buf, len)
-int fd;
-genericptr_t buf;
-register unsigned len;
-{
-    /*register int readlen = 0;*/
-    if (fd < 0) error("Restore error; mread attempting to read file %d.", fd);
-    mreadfd = fd;
-    while (len--) {
-	if (inrunlength > 0) {
-	    inrunlength--;
-	    *(*((char **)&buf))++ = '\0';
-	} else {
-	    register short ch = mgetc();
-	    if (ch < 0) return -1; /*readlen;*/
-	    if ((*(*(char **)&buf)++ = (char)ch) == RLESC) {
-		inrunlength = mgetc();
-	    }
-	}
-	/*readlen++;*/
-    }
-    return 0; /*readlen;*/
-}
-
-#else /* ZEROCOMP */
-
-void
-minit()
-{
-    return;
-}
-
 void
 mread(fd, buf, len)
-register int fd;
+register FILE* fd;
 register genericptr_t buf;
 register unsigned int len;
 {
 	register int rlen;
 
-#if defined(BSD) || defined(ULTRIX)
-	rlen = read(fd, buf, (int) len);
-	if(rlen != len){
-#else /* e.g. SYSV, __TURBOC__ */
-	rlen = read(fd, buf, (unsigned) len);
+	rlen = fread(buf, 1, (size_t) len, fd);
 	if((unsigned)rlen != len){
-#endif
 		pline("Read %d instead of %u bytes.", rlen, len);
 		if(restoring) {
-			(void) close(fd);
+			(void) fclose(fd);
 			(void) delete_savefile();
 			error("Error restoring old game.");
 		}
 		panic("Error reading level file.");
 	}
 }
-#endif /* ZEROCOMP */
 
 /*restore.c*/

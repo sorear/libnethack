@@ -248,7 +248,8 @@ oinit()			/* level dependent initialization */
 
 void
 savenames(fd, mode)
-int fd, mode;
+FILE* fd;
+int mode;
 {
 	register int i;
 	unsigned int len;
@@ -278,7 +279,7 @@ int fd, mode;
 
 void
 restnames(fd)
-register int fd;
+register FILE* fd;
 {
 	register int i;
 	unsigned int len;

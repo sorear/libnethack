@@ -463,7 +463,8 @@ detect_wsegs(worm, use_detection_glyph)
  */
 void
 save_worm(fd, mode)
-    int fd, mode;
+    FILE* fd;
+    int mode;
 {
     int i;
     int count;
@@ -509,7 +510,7 @@ save_worm(fd, mode)
  */
 void
 rest_worm(fd)
-    int fd;
+    FILE* fd;
 {
     int i, j, count;
     struct wseg *curr, *temp;

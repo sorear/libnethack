@@ -203,7 +203,8 @@ dlb *fp;
 
 void
 save_oracles(fd, mode)
-int fd, mode;
+FILE* fd;
+int mode;
 {
 	if (perform_bwrite(mode)) {
 	    bwrite(fd, (genericptr_t) &oracle_cnt, sizeof oracle_cnt);
@@ -220,7 +221,7 @@ int fd, mode;
 
 void
 restore_oracles(fd)
-int fd;
+FILE* fd;
 {
 	mread(fd, (genericptr_t) &oracle_cnt, sizeof oracle_cnt);
 	if (oracle_cnt) {

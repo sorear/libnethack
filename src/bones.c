@@ -193,7 +193,8 @@ void
 savebones(corpse)
 struct obj *corpse;
 {
-	int fd, x, y;
+	FILE* fd;
+        int x, y;
 	struct trap *ttmp;
 	struct monst *mtmp;
 	struct permonst *mptr;
@@ -205,8 +206,8 @@ struct obj *corpse;
 
 	clear_bypasses();
 	fd = open_bonesfile(&u.uz, &bonesid);
-	if (fd >= 0) {
-		(void) close(fd);
+	if (fd != 0) {
+		(void) fclose(fd);
 		compress_bonesfile();
 #ifdef WIZARD
 		if (wizard) {
@@ -374,7 +375,7 @@ struct obj *corpse;
 int
 getbones()
 {
-	register int fd;
+	register FILE* fd;
 	register int ok;
 	char c, *bonesid, oldbonesid[10];
 
@@ -389,7 +390,7 @@ getbones()
 		) return(0);
 	if(no_bones_level(&u.uz)) return(0);
 	fd = open_bonesfile(&u.uz, &bonesid);
-	if (fd < 0) return(0);
+	if (fd == 0) return(0);
 
 	if ((ok = uptodate(fd, bones)) == 0) {
 #ifdef WIZARD
@@ -400,7 +401,7 @@ getbones()
 #ifdef WIZARD
 		if(wizard)  {
 			if(yn("Get bones?") == 'n') {
-				(void) close(fd);
+				(void) fclose(fd);
 				compress_bonesfile();
 				return(0);
 			}
@@ -448,7 +449,7 @@ getbones()
 			resetobjs(level.buriedobjlist,TRUE);
 		}
 	}
-	(void) close(fd);
+	(void) fclose(fd);
 
 #ifdef WIZARD
 	if(wizard) {
