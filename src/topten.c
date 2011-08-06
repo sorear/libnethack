@@ -339,15 +339,12 @@ int how;
 #endif
 
 #ifdef LOGFILE		/* used for debugging (who dies of what, where) */
-	if (lock_file(LOGFILE, SCOREPREFIX, 10)) {
-	    if(!(lfile = fopen_datafile(LOGFILE, "a", SCOREPREFIX))) {
-		HUP raw_print("Cannot open log file!");
-	    } else {
-		writeentry(lfile, t0);
-		(void) fclose(lfile);
-	    }
-	    unlock_file(LOGFILE);
-	}
+        if(!(lfile = fopen_datafile(LOGFILE, "a", SCOREPREFIX))) {
+            HUP raw_print("Cannot open log file!");
+        } else {
+            writeentry(lfile, t0);
+            (void) fclose(lfile);
+        }
 #endif /* LOGFILE */
 
 	if (wizard || discover) {
@@ -362,9 +359,6 @@ int how;
 	    goto showwin;
 	}
 
-	if (!lock_file(RECORD, SCOREPREFIX, 60))
-		goto destroywin;
-
 #ifdef UPDATE_RECORD_IN_PLACE
 	rfile = fopen_datafile(RECORD, "r+", SCOREPREFIX);
 #else
@@ -373,7 +367,6 @@ int how;
 
 	if (!rfile) {
 		HUP raw_print("Cannot open record file!");
-		unlock_file(RECORD);
 		goto destroywin;
 	}
 
@@ -447,7 +440,6 @@ int how;
 		(void) fclose(rfile);
 		if(!(rfile = fopen_datafile(RECORD, "w", SCOREPREFIX))){
 			HUP raw_print("Cannot write record file");
-			unlock_file(RECORD);
 			free_ttlist(tt_head);
 			goto destroywin;
 		}
@@ -523,7 +515,6 @@ int how;
 	}
 #endif	/* UPDATE_RECORD_IN_PLACE */
 	(void) fclose(rfile);
-	unlock_file(RECORD);
 	free_ttlist(tt_head);
 
   showwin:

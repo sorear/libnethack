@@ -50,39 +50,11 @@ int argc;
 char *argv[];
 {
 	register int fd;
+	const char *fq_lock;
 #ifdef CHDIR
 	register char *dir;
 #endif
 	boolean exact_username;
-
-#if defined(__APPLE__)
-	/* special hack to change working directory to a resource fork when
-	   running from finder --sam */
-#define MAC_PATH_VALUE ".app/Contents/MacOS/"
-	char mac_cwd[1024], *mac_exe = argv[0], *mac_tmp;
-	int arg0_len = strlen(mac_exe), mac_tmp_len, mac_lhs_len=0;
-	getcwd(mac_cwd, 1024);
-	if(mac_exe[0] == '/' && !strcmp(mac_cwd, "/")) {
-	    if((mac_exe = strrchr(mac_exe, '/')))
-		mac_exe++;
-	    else
-		mac_exe = argv[0];
-	    mac_tmp_len = (strlen(mac_exe) * 2) + strlen(MAC_PATH_VALUE);
-	    if(mac_tmp_len <= arg0_len) {
-		mac_tmp = malloc(mac_tmp_len + 1);
-		sprintf(mac_tmp, "%s%s%s", mac_exe, MAC_PATH_VALUE, mac_exe);
-		if(!strcmp(argv[0] + (arg0_len - mac_tmp_len), mac_tmp)) {
-		    mac_lhs_len = (arg0_len - mac_tmp_len) + strlen(mac_exe) + 5;
-		    if(mac_lhs_len > mac_tmp_len - 1)
-			mac_tmp = realloc(mac_tmp, mac_lhs_len);
-		    strncpy(mac_tmp, argv[0], mac_lhs_len);
-		    mac_tmp[mac_lhs_len] = '\0';
-		    chdir(mac_tmp);
-		}
-		free(mac_tmp);
-	    }
-	}
-#endif
 
 	hname = argv[0];
 	hackpid = getpid();
@@ -196,24 +168,30 @@ char *argv[];
 	plnamesuffix();		/* strip suffix from name; calls askname() */
 				/* again if suffix was whole name */
 				/* accepts any suffix */
-#ifdef WIZARD
-	if(!wizard) {
-#endif
-		/*
-		 * check for multiple games under the same name
-		 * (if !locknum) or check max nr of players (otherwise)
-		 */
-		(void) signal(SIGQUIT,SIG_IGN);
-		(void) signal(SIGINT,SIG_IGN);
-		if(!locknum)
-			Sprintf(lock, "%d%s", (int)getuid(), plname);
-		getlock();
-#ifdef WIZARD
+        /*
+         * check for multiple games under the same name
+         * (if !locknum) or check max nr of players (otherwise)
+         */
+        (void) signal(SIGQUIT,SIG_IGN);
+        (void) signal(SIGINT,SIG_IGN);
+        Sprintf(lock, "%d%s", (int)getuid(), plname);
+
+	regularize(lock);
+	set_levelfile_name(lock, 0);
+
+	fq_lock = fqname(lock, LEVELPREFIX, 0);
+	fd = creat(fq_lock, FCMASK);
+	if(fd == -1) {
+		error("cannot creat lock file (%s).", fq_lock);
 	} else {
-		Sprintf(lock, "%d%s", (int)getuid(), plname);
-		getlock();
+		if(write(fd, (genericptr_t) &hackpid, sizeof(hackpid))
+		    != sizeof(hackpid)){
+			error("cannot write lock (%s)", fq_lock);
+		}
+		if(close(fd) == -1) {
+			error("cannot close lock (%s)", fq_lock);
+		}
 	}
-#endif /* WIZARD */
 
 	dlb_init();	/* must be before newgame() */
 
@@ -396,13 +374,6 @@ char *argv[];
 			/* else raw_printf("Unknown option: %s", *argv); */
 		}
 	}
-
-	if(argc > 1)
-		locknum = atoi(argv[1]);
-#ifdef MAX_NR_OF_PLAYERS
-	if(!locknum || locknum > MAX_NR_OF_PLAYERS)
-		locknum = MAX_NR_OF_PLAYERS;
-#endif
 }
 
 #ifdef CHDIR
