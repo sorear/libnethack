@@ -121,15 +121,6 @@ struct tchars inittyb2, curttyb2;
 
 #endif	/* V7 */
 
-#if defined(TTY_GRAPHICS) && ((!defined(SYSV) && !defined(HPUX)) || defined(UNIXPC) || defined(SVR4))
-# ifndef LINT
-extern			/* it is defined in libtermlib (libtermcap) */
-# endif
-	short ospeed;	/* terminal baudrate; set by gettty */
-#else
-short	ospeed = 0;	/* gets around "not defined" error message */
-#endif
-
 #if defined(POSIX_TYPES) && defined(BSD)
 unsigned
 #endif
@@ -184,7 +175,6 @@ gettty()
 		perror("NetHack (gettty)");
 	curttyb = inittyb;
 	curttyb2 = inittyb2;
-	ospeed = OSPEED(inittyb);
 	erase_char = inittyb.erase_sym;
 	kill_char = inittyb.kill_sym;
 	intr_char = inittyb2.intr_sym;
@@ -307,144 +297,3 @@ introff()		/* disable kbd interrupts if required*/
 #endif
 }
 
-#ifdef _M_UNIX		/* SCO UNIX (3.2.4), from Andreas Arens */
-# include <sys/console.h>
-
-# define BSIZE (E_TABSZ*2)
-# define LDIOC ('D'<<8)		/* POSIX prevents definition */
-
-# include <sys/emap.h>
-
-int sco_flag_console = 0;
-int sco_map_valid = -1;
-unsigned char sco_chanmap_buf[BSIZE];
-
-void NDECL(sco_mapon);
-void NDECL(sco_mapoff);
-void NDECL(check_sco_console);
-void NDECL(init_sco_cons);
-
-void
-sco_mapon()
-{
-# ifdef TTY_GRAPHICS
-	if (!strcmp(windowprocs.name, "tty") && sco_flag_console) {
-		if (sco_map_valid != -1) {
-			ioctl(0,LDSMAP,sco_chanmap_buf);
-		}
-		sco_map_valid = -1;
-	}
-# endif
-}
-
-void
-sco_mapoff()
-{
-# ifdef TTY_GRAPHICS
-	if (!strcmp(windowprocs.name, "tty") && sco_flag_console) {
-		sco_map_valid = ioctl(0,LDGMAP,sco_chanmap_buf);
-		if (sco_map_valid != -1) {
-			ioctl(0,LDNMAP,(char *)0);
-		}
-	}
-# endif
-}
-
-void
-check_sco_console()
-{
-	if (isatty(0) && ioctl(0,CONS_GET,0) != -1) {
-		sco_flag_console = 1;
-	}
-}
-
-void
-init_sco_cons()
-{
-# ifdef TTY_GRAPHICS
-	if (!strcmp(windowprocs.name, "tty") && sco_flag_console) {
-		atexit(sco_mapon);
-		sco_mapoff();
-		switch_graphics(IBM_GRAPHICS);
-#  ifdef TEXTCOLOR
-		if (has_colors())
-			iflags.use_color = TRUE;
-#  endif
-	}
-# endif
-}
-#endif	/* _M_UNIX */
-
-
-#ifdef __linux__		/* via Jesse Thilo and Ben Gertzfield */
-# include <sys/vt.h>
-
-int linux_flag_console = 0;
-
-void NDECL(linux_mapon);
-void NDECL(linux_mapoff);
-void NDECL(check_linux_console);
-void NDECL(init_linux_cons);
-
-void
-linux_mapon()
-{
-# ifdef TTY_GRAPHICS
-	if (!strcmp(windowprocs.name, "tty") && linux_flag_console) {
-		write(1, "\033(B", 3);
-	}
-# endif
-}
-
-void
-linux_mapoff()
-{
-# ifdef TTY_GRAPHICS
-	if (!strcmp(windowprocs.name, "tty") && linux_flag_console) {
-		write(1, "\033(U", 3);
-	}
-# endif
-}
-
-void
-check_linux_console()
-{
-	struct vt_mode vtm;
-
-	if (isatty(0) && ioctl(0,VT_GETMODE,&vtm) >= 0) {
-		linux_flag_console = 1;
-	}
-}
-
-void
-init_linux_cons()
-{
-# ifdef TTY_GRAPHICS
-	if (!strcmp(windowprocs.name, "tty") && linux_flag_console) {
-		atexit(linux_mapon);
-		linux_mapoff();
-#  ifdef TEXTCOLOR
-		if (has_colors())
-			iflags.use_color = TRUE;
-#  endif
-	}
-# endif
-}
-#endif	/* __linux__ */
-
-
-#ifndef __begui__	/* the Be GUI will define its own error proc */
-/* fatal error */
-/*VARARGS1*/
-void
-error VA_DECL(const char *,s)
-	VA_START(s);
-	VA_INIT(s, const char *);
-	if(settty_needed)
-		settty((char *)0);
-	Vprintf(s,VA_ARGS);
-	(void) putchar('\n');
-	VA_END();
-	exit(EXIT_FAILURE);
-}
-#endif /* !__begui__ */

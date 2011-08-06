@@ -93,7 +93,7 @@ HOBJ = $(FIRSTOBJ) allmain.o alloc.o apply.o artifact.o attrib.o ball.o \
 
 $(GAME):	$(HOBJ) Makefile
 	@echo "Loading ..."
-	$(LINK) $(LFLAGS) -o $(GAME) $(HOBJ) -lncurses
+	$(LINK) $(LFLAGS) -o $(GAME) $(HOBJ)
 	@echo "$(GAME) is up to date."
 
 DUMB.Setup:	../include/extern.h

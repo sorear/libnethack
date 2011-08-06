@@ -410,7 +410,6 @@ static uchar ibm_graphics[MAXPCHARS] = {
 };
 #endif  /* ASCIIGRAPH */
 
-#ifdef TERMLIB
 void NDECL((*decgraphics_mode_callback)) = 0;  /* set in tty_start_screen() */
 
 static uchar dec_graphics[MAXPCHARS] = {
@@ -507,7 +506,6 @@ static uchar dec_graphics[MAXPCHARS] = {
 /*90*/	0xf3,	/* S_explode8:	meta-s, low horizontal line */
 	g_FILLER(S_explode9)
 };
-#endif  /* TERMLIB */
 
 #ifdef MAC_GRAPHICS_ENV
 static uchar mac_graphics[MAXPCHARS] = {

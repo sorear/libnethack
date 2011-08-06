@@ -75,11 +75,7 @@ static struct Bool_Opt
 	{"color",         &iflags.wc_color, FALSE, SET_IN_GAME},	/*WC*/
 # endif
 	{"confirm",&flags.confirm, TRUE, SET_IN_GAME},
-#if defined(TERMLIB) && !defined(MAC_GRAPHICS_ENV)
 	{"DECgraphics", &iflags.DECgraphics, FALSE, SET_IN_GAME},
-#else
-	{"DECgraphics", (boolean *)0, FALSE, SET_IN_FILE},
-#endif
 	{"eight_bit_tty", &iflags.wc_eight_bit_input, FALSE, SET_IN_GAME},	/*WC*/
 #ifdef TTY_GRAPHICS
 	{"extmenu", &iflags.extmenu, FALSE, SET_IN_GAME},

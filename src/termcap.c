@@ -78,14 +78,8 @@ static char nullstr[] = "";
 extern boolean HE_resets_AS;
 #endif
 
-#ifndef TERMLIB
 STATIC_VAR char tgotobuf[20];
-# ifdef TOS
-#define tgoto(fmt, x, y)	(Sprintf(tgotobuf, fmt, y+' ', x+' '), tgotobuf)
-# else
 #define tgoto(fmt, x, y)	(Sprintf(tgotobuf, fmt, y+1, x+1), tgotobuf)
-# endif
-#endif /* TERMLIB */
 
 #ifdef OVLB
 
@@ -94,72 +88,19 @@ tty_startup(wid, hgt)
 int *wid, *hgt;
 {
 	register int i;
-#ifdef TERMLIB
 	register const char *term;
 	register char *tptr;
 	char *tbufptr, *pc;
 
-# ifdef VMS
-	term = verify_termcap();
-	if (!term)
-# endif
-		term = getenv("TERM");
-
-# if defined(TOS) && defined(__GNUC__)
-	if (!term)
-		term = "builtin";		/* library has a default */
-# endif
-	if (!term)
-#endif
-#ifndef ANSI_DEFAULT
-		error("Can't get TERM.");
-#else
-# ifdef TOS
 	{
-		CO = 80; LI = 25;
-		TI = VS = VE = TE = nullstr;
-		HO = "\033H";
-		CE = "\033K";		/* the VT52 termcap */
-		UP = "\033A";
-		nh_CM = "\033Y%c%c";	/* used with function tgoto() */
-		nh_ND = "\033C";
-		XD = "\033B";
-		BC = "\033D";
-		SO = "\033p";
-		SE = "\033q";
-	/* HI and HE will be updated in init_hilite if we're using color */
-		nh_HI = "\033p";
-		nh_HE = "\033q";
-		*wid = CO;
-		*hgt = LI;
-		CL = "\033E";		/* last thing set */
-		return;
-	}
-# else /* TOS */
-	{
-#  ifdef MICRO
-		get_scr_size();
-#   ifdef CLIPPING
-		if(CO < COLNO || LI < ROWNO+3)
-			setclipped();
-#   endif
-#  endif
 		HO = "\033[H";
-/*		nh_CD = "\033[J"; */
+		nh_CD = "\033[J";
 		CE = "\033[K";		/* the ANSI termcap */
-#  ifndef TERMLIB
 		nh_CM = "\033[%d;%dH";
-#  else
-		nh_CM = "\033[%i%d;%dH";
-#  endif
 		UP = "\033[A";
 		nh_ND = "\033[C";
 		XD = "\033[B";
-#  ifdef MICRO	/* backspaces are non-destructive */
 		BC = "\b";
-#  else
-		BC = "\033[D";
-#  endif
 		nh_HI = SO = "\033[1m";
 		nh_US = "\033[4m";
 		MR = "\033[7m";
@@ -167,176 +108,25 @@ int *wid, *hgt;
 		/* strictly, SE should be 2, and nh_UE should be 24,
 		   but we can't trust all ANSI emulators to be
 		   that complete.  -3. */
-#  ifndef MICRO
 		AS = "\016";
 		AE = "\017";
-#  endif
 		TE = VS = VE = nullstr;
-#  ifdef TEXTCOLOR
 		for (i = 0; i < CLR_MAX / 2; i++)
 		    if (i != CLR_BLACK) {
 			hilites[i|BRIGHT] = (char *) alloc(sizeof("\033[1;3%dm"));
 			Sprintf(hilites[i|BRIGHT], "\033[1;3%dm", i);
 			if (i != CLR_GRAY)
-#   ifdef MICRO
-			    if (i == CLR_BLUE) hilites[CLR_BLUE] = hilites[CLR_BLUE|BRIGHT];
-			    else
-#   endif
 			    {
 				hilites[i] = (char *) alloc(sizeof("\033[0;3%dm"));
 				Sprintf(hilites[i], "\033[0;3%dm", i);
 			    }
 		    }
-#  endif
-		*wid = CO;
-		*hgt = LI;
+		*wid = CO = 80;
+		*hgt = LI = 24;
 		CL = "\033[2J";		/* last thing set */
 		return;
 	}
-# endif /* TOS */
-#endif /* ANSI_DEFAULT */
 
-#ifdef TERMLIB
-	tptr = (char *) alloc(1024);
-
-	tbufptr = tbuf;
-	if(!strncmp(term, "5620", 4))
-		flags.null = FALSE;	/* this should be a termcap flag */
-	if(tgetent(tptr, term) < 1) {
-		char buf[BUFSZ];
-		(void) strncpy(buf, term,
-				(BUFSZ - 1) - (sizeof("Unknown terminal type: .  ")));
-		buf[BUFSZ-1] = '\0';
-		error("Unknown terminal type: %s.", term);
-	}
-	if ((pc = Tgetstr("pc")) != 0)
-		PC = *pc;
-
-	if(!(BC = Tgetstr("le")))	/* both termcap and terminfo use le */
-# ifdef TERMINFO
-	    error("Terminal must backspace.");
-# else
-	    if(!(BC = Tgetstr("bc"))) {	/* termcap also uses bc/bs */
-#  ifndef MINIMAL_TERM
-		if(!tgetflag("bs"))
-			error("Terminal must backspace.");
-#  endif
-		BC = tbufptr;
-		tbufptr += 2;
-		*BC = '\b';
-	    }
-# endif
-
-# ifdef MINIMAL_TERM
-	HO = (char *)0;
-# else
-	HO = Tgetstr("ho");
-# endif
-	/*
-	 * LI and CO are set in ioctl.c via a TIOCGWINSZ if available.  If
-	 * the kernel has values for either we should use them rather than
-	 * the values from TERMCAP ...
-	 */
-# ifndef MICRO
-	if (!CO) CO = tgetnum("co");
-	if (!LI) LI = tgetnum("li");
-# else
-#  if defined(TOS) && defined(__GNUC__)
-	if (!strcmp(term, "builtin"))
-		get_scr_size();
-	else {
-#  endif
-		CO = tgetnum("co");
-		LI = tgetnum("li");
-		if (!LI || !CO)			/* if we don't override it */
-			get_scr_size();
-#  if defined(TOS) && defined(__GNUC__)
-	}
-#  endif
-# endif
-# ifdef CLIPPING
-	if(CO < COLNO || LI < ROWNO+3)
-		setclipped();
-# endif
-	nh_ND = Tgetstr("nd");
-	if(tgetflag("os"))
-		error("NetHack can't have OS.");
-	if(tgetflag("ul"))
-		ul_hack = TRUE;
-	CE = Tgetstr("ce");
-	UP = Tgetstr("up");
-	/* It seems that xd is no longer supported, and we should use
-	   a linefeed instead; unfortunately this requires resetting
-	   CRMOD, and many output routines will have to be modified
-	   slightly. Let's leave that till the next release. */
-	XD = Tgetstr("xd");
-/* not:		XD = Tgetstr("do"); */
-	if(!(nh_CM = Tgetstr("cm"))) {
-	    if(!UP && !HO)
-		error("NetHack needs CM or UP or HO.");
-	    tty_raw_print("Playing NetHack on terminals without CM is suspect.");
-	    tty_wait_synch();
-	}
-	SO = Tgetstr("so");
-	SE = Tgetstr("se");
-	nh_US = Tgetstr("us");
-	nh_UE = Tgetstr("ue");
-	SG = tgetnum("sg");	/* -1: not fnd; else # of spaces left by so */
-	if(!SO || !SE || (SG > 0)) SO = SE = nh_US = nh_UE = nullstr;
-	TI = Tgetstr("ti");
-	TE = Tgetstr("te");
-	VS = VE = nullstr;
-# ifdef TERMINFO
-	VS = Tgetstr("eA");	/* enable graphics */
-# endif
-	KS = Tgetstr("ks");	/* keypad start (special mode) */
-	KE = Tgetstr("ke");	/* keypad end (ordinary mode [ie, digits]) */
-	MR = Tgetstr("mr");	/* reverse */
-# if 0
-	MB = Tgetstr("mb");	/* blink */
-	MD = Tgetstr("md");	/* boldface */
-	MH = Tgetstr("mh");	/* dim */
-# endif
-	ME = Tgetstr("me");	/* turn off all attributes */
-	if (!ME || (SE == nullstr)) ME = SE;	/* default to SE value */
-
-	/* Get rid of padding numbers for nh_HI and nh_HE.  Hope they
-	 * aren't really needed!!!  nh_HI and nh_HE are outputted to the
-	 * pager as a string - so how can you send it NULs???
-	 *  -jsb
-	 */
-	nh_HI = (char *) alloc((unsigned)(strlen(SO)+1));
-	nh_HE = (char *) alloc((unsigned)(strlen(ME)+1));
-	i = 0;
-	while (digit(SO[i])) i++;
-	Strcpy(nh_HI, &SO[i]);
-	i = 0;
-	while (digit(ME[i])) i++;
-	Strcpy(nh_HE, &ME[i]);
-	AS = Tgetstr("as");
-	AE = Tgetstr("ae");
-	nh_CD = Tgetstr("cd");
-# ifdef TEXTCOLOR
-	MD = Tgetstr("md");
-# endif
-# ifdef TEXTCOLOR
-#  if defined(TOS) && defined(__GNUC__)
-	if (!strcmp(term, "builtin") || !strcmp(term, "tw52") ||
-	    !strcmp(term, "st52")) {
-		init_hilite();
-	}
-#  else
-	init_hilite();
-#  endif
-# endif
-	*wid = CO;
-	*hgt = LI;
-	if (!(CL = Tgetstr("cl")))	/* last thing set */
-		error("NetHack needs CL.");
-	if ((int)(tbufptr - tbuf) > (int)(sizeof tbuf))
-		error("TERMCAP entry too big...\n");
-	free((genericptr_t)tptr);
-#endif /* TERMLIB */
 }
 
 /* note: at present, this routine is not part of the formal window interface */
@@ -459,17 +249,6 @@ tty_start_screen()
 {
 	xputs(TI);
 	xputs(VS);
-#ifdef PC9800
-    if (!iflags.IBMgraphics && !iflags.DECgraphics)
-	    tty_ascgraphics_hilite_fixup();
-    /* set up callback in case option is not set yet but toggled later */
-    ascgraphics_mode_callback = tty_ascgraphics_hilite_fixup;
-# ifdef ASCIIGRAPH
-    if (iflags.IBMgraphics) init_hilite();
-    /* set up callback in case option is not set yet but toggled later */
-    ibmgraphics_mode_callback = init_hilite;
-# endif
-#endif /* PC9800 */
 
 #ifdef TERMLIB
 	if (iflags.DECgraphics) tty_decgraphics_termcap_fixup();
@@ -570,15 +349,7 @@ void
 xputs(s)
 const char *s;
 {
-# ifndef TERMLIB
 	(void) fputs(s, stdout);
-# else
-#  if defined(NHSTDC) || defined(ULTRIX_PROTO)
-	tputs(s, 1, (int (*)())xputc);
-#  else
-	tputs(s, 1, xputc);
-#  endif
-# endif
 }
 
 void
@@ -727,9 +498,7 @@ static const short tmspc10[] = {		/* from termcap */
 void
 tty_delay_output()
 {
-#if defined(MICRO)
 	register int i;
-#endif
 #ifdef TIMED_DELAY
 	if (flags.nap) {
 		(void) fflush(stdout);
@@ -737,43 +506,9 @@ tty_delay_output()
 		return;
 	}
 #endif
-#if defined(MICRO)
-	/* simulate the delay with "cursor here" */
-	for (i = 0; i < 3; i++) {
-		cmov(ttyDisplay->curx, ttyDisplay->cury);
-		(void) fflush(stdout);
-	}
-#else /* MICRO */
-	/* BUG: if the padding character is visible, as it is on the 5620
-	   then this looks terrible. */
 	if(flags.null)
-# ifdef TERMINFO
-		/* cbosgd!cbcephus!pds for SYS V R2 */
-#  ifdef NHSTDC
-		tputs("$<50>", 1, (int (*)())xputc);
-#  else
-		tputs("$<50>", 1, xputc);
-#  endif
-# else
-#  if defined(NHSTDC) || defined(ULTRIX_PROTO)
-		tputs("50", 1, (int (*)())xputc);
-#  else
-		tputs("50", 1, xputc);
-#  endif
-# endif
-
-	else if(ospeed > 0 && ospeed < SIZE(tmspc10) && nh_CM) {
-		/* delay by sending cm(here) an appropriate number of times */
-		register int cmlen = strlen(tgoto(nh_CM, ttyDisplay->curx,
-							ttyDisplay->cury));
-		register int i = 500 + tmspc10[ospeed]/2;
-
-		while(i > 0) {
-			cmov((int)ttyDisplay->curx, (int)ttyDisplay->cury);
-			i -= cmlen*tmspc10[ospeed];
-		}
-	}
-#endif /* MICRO */
+            for (i = 0; i < 1000; i++)
+                xputc(0);
 }
 
 #endif /* OVL1 */
