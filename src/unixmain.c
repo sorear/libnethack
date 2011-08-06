@@ -57,8 +57,6 @@ char *argv[];
 	boolean exact_username;
 
 	hname = argv[0];
-	hackpid = getpid();
-	(void) umask(0777 & ~FCMASK);
 
 	choose_windows(DEFAULT_WINDOW_SYS);
 
@@ -223,7 +221,6 @@ char *argv[];
 #endif
 		const char *fq_save = fqname(SAVEF, SAVEPREFIX, 1);
 
-		(void) chmod(fq_save,0);	/* disallow parallel restores */
 		(void) signal(SIGINT, (SIG_RET_TYPE) done1);
 #ifdef NEWS
 		if(iflags.news) {
@@ -245,7 +242,6 @@ char *argv[];
 			if(yn("Do you want to keep the save file?") == 'n')
 			    (void) delete_savefile();
 			else {
-			    (void) chmod(fq_save,FCMASK); /* back to readable */
 			    compress(fq_save);
 			}
 		}

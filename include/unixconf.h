@@ -143,8 +143,6 @@
  * A stat system call is done on the mailbox every MAILCKFREQ moves.
  */
 
-#define MAIL			/* Deliver mail during the game */
-
 /* The Andrew Message System does mail a little differently from normal
  * UNIX.  Mail is deposited in the user's own directory in ~/Mailbox
  * (another directory).  MAILBOX is the element that will be added on to
@@ -166,46 +164,6 @@
 
 /* #define NO_MAILREADER */	/* have mail daemon just tell player of mail */
 
-#ifdef	MAIL
-# if defined(BSD) || defined(ULTRIX)
-#  ifdef AMS
-#define AMS_MAILBOX	"/Mailbox"
-#  else
-#   if defined(__FreeBSD__) || defined(__OpenBSD__)
-#define DEF_MAILREADER	"/usr/bin/mail"
-#   else
-#define DEF_MAILREADER	"/usr/ucb/Mail"
-#   endif
-#  endif
-#else
-# if (defined(SYSV) || defined(DGUX) || defined(HPUX)) && !defined(LINUX)
-#  if defined(M_XENIX)
-#define DEF_MAILREADER	"/usr/bin/mail"
-#  else
-#   ifdef __sgi
-#define DEF_MAILREADER	"/usr/sbin/Mail"
-#   else
-#define DEF_MAILREADER	"/usr/bin/mailx"
-#   endif
-#  endif
-# else
-#define DEF_MAILREADER	"/bin/mail"
-# endif
-#endif
-
-#define MAILCKFREQ	50
-#endif	/* MAIL */
-
-
-
-#ifdef COMPRESS
-/* Some implementations of compress need a 'quiet' option.
- * If you've got one of these versions, put -q here.
- * You can also include any other strange options your compress needs.
- * If you have a normal compress, just leave it commented out.
- */
-/* #define COMPRESS_OPTIONS "-q" */
-#endif
 
 #define FCMASK	0660	/* file creation mask */
 
@@ -269,8 +227,6 @@
 #define Getchar nhgetch
 #endif
 #define tgetch getchar
-
-#define SHELL		/* do not delete the '!' command */
 
 #include "system.h"
 
