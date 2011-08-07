@@ -113,12 +113,12 @@ int *wid, *hgt;
 		TE = VS = VE = nullstr;
 		for (i = 0; i < CLR_MAX / 2; i++)
 		    if (i != CLR_BLACK) {
-			hilites[i|BRIGHT] = (char *) alloc(sizeof("\033[1;3%dm"));
-			Sprintf(hilites[i|BRIGHT], "\033[1;3%dm", i);
+			hilites[i|BRIGHT] = (char *) alloc(sizeof("\033[1m\033[3%dm"));
+			Sprintf(hilites[i|BRIGHT], "\033[1m\033[3%dm", i);
 			if (i != CLR_GRAY)
 			    {
-				hilites[i] = (char *) alloc(sizeof("\033[0;3%dm"));
-				Sprintf(hilites[i], "\033[0;3%dm", i);
+				hilites[i] = (char *) alloc(sizeof("\033[0m\033[3%dm"));
+				Sprintf(hilites[i], "\033[0m\033[3%dm", i);
 			    }
 		    }
 		*wid = CO = 80;
