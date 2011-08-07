@@ -6,10 +6,6 @@
 
 #include "hack.h"
 
-#ifndef NO_SIGNAL
-#include <signal.h>
-#endif
-
 #ifdef POSITIONBAR
 STATIC_DCL void NDECL(do_positionbar);
 #endif
@@ -503,9 +499,6 @@ newgame()
 				 * any artifacts */
 	u_init();
 
-#ifndef NO_SIGNAL
-	(void) signal(SIGINT, (SIG_RET_TYPE) done1);
-#endif
 #ifdef NEWS
 	if(iflags.news) display_file(NEWS, FALSE);
 #endif

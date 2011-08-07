@@ -28,12 +28,6 @@ extern void msmsg(const char *,...);
 #include "tcap.h"
 #include "wintty.h"
 
-#ifdef CLIPPING		/* might want SIGWINCH */
-# if defined(BSD) || defined(ULTRIX) || defined(AIX_31) || defined(_BULL_SOURCE)
-#include <signal.h>
-# endif
-#endif
-
 extern char mapped_menu_cmds[]; /* from options.c */
 
 /* Interface definition, for windows.c */
@@ -193,61 +187,6 @@ const char *mesg;
     /*NOTREACHED*/
 }
 
-#if defined(SIGWINCH) && defined(CLIPPING)
-STATIC_OVL void
-winch()
-{
-    int oldLI = LI, oldCO = CO, i;
-    register struct WinDesc *cw;
-
-    getwindowsz();
-    if((oldLI != LI || oldCO != CO) && ttyDisplay) {
-	ttyDisplay->rows = LI;
-	ttyDisplay->cols = CO;
-
-	cw = wins[BASE_WINDOW];
-	cw->rows = ttyDisplay->rows;
-	cw->cols = ttyDisplay->cols;
-
-	if(iflags.window_inited) {
-	    cw = wins[WIN_MESSAGE];
-	    cw->curx = cw->cury = 0;
-
-	    tty_destroy_nhwindow(WIN_STATUS);
-	    WIN_STATUS = tty_create_nhwindow(NHW_STATUS);
-
-	    if(u.ux) {
-#ifdef CLIPPING
-		if(CO < COLNO || LI < ROWNO+3) {
-		    setclipped();
-		    tty_cliparound(u.ux, u.uy);
-		} else {
-		    clipping = FALSE;
-		    clipx = clipy = 0;
-		}
-#endif
-		i = ttyDisplay->toplin;
-		ttyDisplay->toplin = 0;
-		docrt();
-		bot();
-		ttyDisplay->toplin = i;
-		flush_screen(1);
-		if(i) {
-		    addtopl(toplines);
-		} else
-		    for(i=WIN_INVEN; i < MAXWIN; i++)
-			if(wins[i] && wins[i]->active) {
-			    /* cop-out */
-			    addtopl("Press Return to continue: ");
-			    break;
-			}
-		if(i < 2) flush_screen(1);
-	    }
-	}
-    }
-}
-#endif
-
 /*ARGSUSED*/
 void
 tty_init_nhwindows(argcp,argv)
@@ -288,10 +227,6 @@ char** argv;
     wins[BASE_WINDOW]->active = 1;
 
     ttyDisplay->lastwin = WIN_ERR;
-
-#if defined(SIGWINCH) && defined(CLIPPING)
-    (void) signal(SIGWINCH, winch);
-#endif
 
     /* add one a space forward menu command alias */
     add_menu_cmd_alias(' ', MENU_NEXT_PAGE);

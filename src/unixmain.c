@@ -8,7 +8,6 @@
 #include "dlb.h"
 
 #include <sys/stat.h>
-#include <signal.h>
 #include <pwd.h>
 #ifndef O_RDONLY
 #include <fcntl.h>
@@ -83,7 +82,7 @@ char *argv[];
 		chdirx(dir,0);
 #endif
 		prscore(argc, argv);
-		exit(EXIT_SUCCESS);
+		nh_exit(EXIT_SUCCESS);
 	    }
 	}
 
@@ -95,10 +94,6 @@ char *argv[];
 	 * It seems you really want to play.
 	 */
 	u.uhp = 1;	/* prevent RIP on early quits */
-	(void) signal(SIGHUP, (SIG_RET_TYPE) hangup);
-#ifdef SIGXCPU
-	(void) signal(SIGXCPU, (SIG_RET_TYPE) hangup);
-#endif
 
 	process_options(argc, argv);	/* command line options */
 
@@ -132,8 +127,6 @@ char *argv[];
          * check for multiple games under the same name
          * (if !locknum) or check max nr of players (otherwise)
          */
-        (void) signal(SIGQUIT,SIG_IGN);
-        (void) signal(SIGINT,SIG_IGN);
         Sprintf(lock, "TEMP");
 
 	regularize(lock);
@@ -183,7 +176,6 @@ char *argv[];
 #endif
 		const char *fq_save = fqname(SAVEF, SAVEPREFIX, 1);
 
-		(void) signal(SIGINT, (SIG_RET_TYPE) done1);
 #ifdef NEWS
 		if(iflags.news) {
 		    display_file(NEWS, FALSE);
@@ -220,7 +212,7 @@ not_recovered:
 	}
 
 	moveloop();
-	exit(EXIT_SUCCESS);
+	nh_exit(EXIT_SUCCESS);
 	/*NOTREACHED*/
 	return(0);
 }

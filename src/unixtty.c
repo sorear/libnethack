@@ -11,7 +11,6 @@
 #define NEED_VARARGS
 #include "hack.h"
 
-
 static void
 setctty()
 {
@@ -55,3 +54,14 @@ introff()		/* disable kbd interrupts if required*/
 {
 }
 
+void
+error VA_DECL(const char *,s)
+       VA_START(s);
+       VA_INIT(s, const char *);
+       char out[1024];
+       Vsprintf(out, s,VA_ARGS);
+       nh_output(out, strlen(out));
+       (void) nh_output("\r\n", 2);
+       VA_END();
+       nh_exit(EXIT_FAILURE);
+}

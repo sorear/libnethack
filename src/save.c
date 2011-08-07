@@ -6,9 +6,6 @@
 #include "lev.h"
 #include "quest.h"
 
-#ifndef NO_SIGNAL
-#include <signal.h>
-#endif
 #if !defined(LSC) && !defined(O_WRONLY) && !defined(AZTEC_C)
 #include <fcntl.h>
 #endif
@@ -74,37 +71,6 @@ dosave()
 }
 
 
-#if defined(UNIX) || defined(VMS) || defined (__EMX__) || defined(WIN32)
-/*ARGSUSED*/
-void
-hangup(sig_unused)  /* called as signal() handler, so sent at least one arg */
-int sig_unused;
-{
-# ifdef NOSAVEONHANGUP
-	(void) signal(SIGINT, SIG_IGN);
-	clearlocks();
-#  ifndef VMS
-	terminate(EXIT_FAILURE);
-#  endif
-# else	/* SAVEONHANGUP */
-	if (!program_state.done_hup++) {
-	    if (program_state.something_worth_saving)
-		(void) dosave0();
-#  ifdef VMS
-	    /* don't call exit when already within an exit handler;
-	       that would cancel any other pending user-mode handlers */
-	    if (!program_state.exiting)
-#  endif
-	    {
-		clearlocks();
-		terminate(EXIT_FAILURE);
-	    }
-	}
-# endif
-	return;
-}
-#endif
-
 /* returns 1 if save successful */
 int
 dosave0()
@@ -120,12 +86,6 @@ dosave0()
 		return 0;
 	fq_save = fqname(SAVEF, SAVEPREFIX, 1);	/* level files take 0 */
 
-#if defined(UNIX) || defined(VMS)
-	(void) signal(SIGHUP, SIG_IGN);
-#endif
-#ifndef NO_SIGNAL
-	(void) signal(SIGINT, SIG_IGN);
-#endif
 
 #if defined(MICRO) && defined(MFLOPPY)
 	if (!saveDiskPrompt(0)) return 0;

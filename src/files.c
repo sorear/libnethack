@@ -36,10 +36,6 @@ extern int errno;
 #include <dirent.h>
 #endif
 
-#if defined(UNIX) || defined(VMS)
-#include <signal.h>
-#endif
-
 #if defined(MSDOS) || defined(OS2) || defined(TOS) || defined(WIN32)
 # ifndef GNUDOS
 #include <sys\stat.h>
@@ -481,9 +477,6 @@ clearlocks()
 #else
 	register int x;
 
-# if defined(UNIX) || defined(VMS)
-	(void) signal(SIGHUP, SIG_IGN);
-# endif
 	/* can't access maxledgerno() before dungeons are created -dlc */
 	for (x = (n_dgns ? maxledgerno() : 0); x >= 0; x--)
 		delete_levelfile(x);	/* not all levels need be present */
