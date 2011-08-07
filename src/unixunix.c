@@ -67,27 +67,21 @@ unsigned msec;				/* milliseconds */
 }
 #endif /* TIMED_DELAY for SYSV */
 
-int
-nh_stdin_get()
-{
-    char buf;
-    if (read(0, &buf, 1) > 0)
-        return (unsigned char)buf;
-    else
-        return EOF;
+static int (*hook_stdin_get)();
+static void (*hook_nh_output)(const char *, int);
+static void (*hook_nh_exit)(int);
+
+void __attribute__((visibility("default")))
+nethack_set_hooks_1(
+        int (*hsg)(),
+        void (*hnho)(const char *, int),
+        void (*he)(int)
+) {
+    hook_stdin_get = hsg;
+    hook_nh_output = hnho;
+    hook_nh_exit = he;
 }
 
-void
-nh_output(s, l)
-    const char *s;
-    int l;
-{
-    write(1, s, l);
-}
-
-void
-nh_exit(x)
-    int x;
-{
-    exit(x);
-}
+int nh_stdin_get() { return (*hook_stdin_get)(); }
+void nh_output(const char *s, int l) { (*hook_nh_output)(s,l); }
+void nh_exit(int x) { (*hook_nh_exit)(x); }

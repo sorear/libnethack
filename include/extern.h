@@ -2009,14 +2009,13 @@ E void NDECL(port_help);
 
 /* ### unixtty.c ### */
 
-#if defined(UNIX) || defined(__BEOS__)
+#define error nethack_error
 E void NDECL(gettty);
 E void FDECL(settty, (const char *));
 E void NDECL(setftty);
 E void NDECL(intron);
 E void NDECL(introff);
 E void VDECL(error, (const char *,...)) PRINTF_F(1,2);
-#endif /* UNIX || __BEOS__ */
 
 /* ### unixunix.c ### */
 

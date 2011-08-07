@@ -72,11 +72,12 @@ DATNODLB = $(VARDATND) license
 DATDLB = $(DATHELP) dungeon $(SPEC_LEVS) $(QUEST_LEVS) $(VARDAT)
 DAT = $(DATNODLB) $(DATDLB)
 
+all:	$(GAME) recover Guidebook $(VARDAT) dungeon spec_levs check-dlb
+	cp src/libnethack.so dat/nhdat .
+	@echo "Done."
+
 $(GAME):
 	( cd src ; $(MAKE) )
-
-all:	$(GAME) recover Guidebook $(VARDAT) dungeon spec_levs check-dlb
-	@echo "Done."
 
 # Note: many of the dependencies below are here to allow parallel make
 # to generate valid output

@@ -25,8 +25,8 @@ static void NDECL(wd_message);
 static boolean wiz_error_flag = FALSE;
 #endif
 
-int
-main(argc,argv)
+int __attribute__((visibility("default")))
+nethack_main_1(argc,argv)
 int argc;
 char *argv[];
 {

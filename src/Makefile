@@ -7,11 +7,11 @@ SHELL=/bin/sh
 LINK=$(CC)
 
 # CFLAGS = -g -I../include
-CFLAGS = -O -I../include
-LFLAGS = 
+CFLAGS = -O -I../include -fvisibility=internal
+LFLAGS = -shared
 
 # make NetHack
-GAME     = nethack
+GAME     = libnethack.so
 # GAME     = nethack.prg
 
 # used by `make depend' to reconstruct this Makefile; you shouldn't need this
