@@ -118,9 +118,7 @@ static int lockptr;
 #endif
 #endif
 
-#ifdef MAC
-# define unlink macunlink
-#endif
+#define unlink remove
 
 #ifdef USER_SOUNDS
 extern char *sounddir;
@@ -851,20 +849,6 @@ const char *filename;
 	/* "filename" is an environment variable, so it should hang around */
 	/* if set, it is expected to be a full path name (if relevant) */
 	if (filename) {
-#ifdef UNIX
-		if (access(filename, 4) == -1) {
-			/* 4 is R_OK on newer systems */
-			/* nasty sneaky attempt to read file through
-			 * NetHack's setuid permissions -- this is the only
-			 * place a file name may be wholly under the player's
-			 * control
-			 */
-			raw_printf("Access to %s denied (%d).",
-					filename, errno);
-			wait_synch();
-			/* fall through to standard names */
-		} else
-#endif
 		if ((fp = fopenp(filename, "r")) != (FILE *)0) {
 		    configfile = filename;
 		    return(fp);
@@ -1326,15 +1310,6 @@ char		*tmp_levels;
 	return 1;
 }
 
-#ifdef USER_SOUNDS
-boolean
-can_read_file(filename)
-const char *filename;
-{
-	return (access(filename, 4) == 0);
-}
-#endif /* USER_SOUNDS */
-
 void
 read_config_file(filename)
 const char *filename;
@@ -1412,29 +1387,13 @@ fopen_wizkit_file()
 	if (envp && *envp) (void) strncpy(wizkit, envp, WIZKIT_MAX - 1);
 	if (!wizkit[0]) return (FILE *)0;
 
-#ifdef UNIX
-	if (access(wizkit, 4) == -1) {
-		/* 4 is R_OK on newer systems */
-		/* nasty sneaky attempt to read file through
-		 * NetHack's setuid permissions -- this is a
-		 * place a file name may be wholly under the player's
-		 * control
-		 */
-		raw_printf("Access to %s denied (%d).",
-				wizkit, errno);
-		wait_synch();
-		/* fall through to standard names */
-	} else
-#endif
 	if ((fp = fopenp(wizkit, "r")) != (FILE *)0) {
 	    return(fp);
-#if defined(UNIX) || defined(VMS)
 	} else {
 	    /* access() above probably caught most problems for UNIX */
 	    raw_printf("Couldn't open requested config file %s (%d).",
 				wizkit, errno);
 	    wait_synch();
-#endif
 	}
 
 #if defined(MICRO) || defined(MAC) || defined(__BEOS__) || defined(WIN32)

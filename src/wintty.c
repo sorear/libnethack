@@ -15,6 +15,7 @@
 #else
 #include "patchlevel.h"
 #endif
+#include <errno.h>
 
 #ifdef TTY_GRAPHICS
 
@@ -1802,8 +1803,12 @@ boolean complain;
 	f = dlb_fopen(fname, "r");
 	if (!f) {
 	    if(complain) {
+                int save = errno;
 		home();  tty_mark_synch();  tty_raw_print("");
-		perror(fname);  tty_wait_synch();
+                xputs(fname);
+                xputs(": ");
+                xputs(strerror(save));
+                xputs("\r\n");
 		pline("Cannot open \"%s\".", fname);
 	    } else if(u.ux) docrt();
 	} else {
